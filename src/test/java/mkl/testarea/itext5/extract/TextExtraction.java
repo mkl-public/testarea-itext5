@@ -1,6 +1,3 @@
-/**
- * 
- */
 package mkl.testarea.itext5.extract;
 
 import java.io.File;
