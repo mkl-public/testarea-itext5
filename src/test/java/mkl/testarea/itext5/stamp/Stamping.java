@@ -36,6 +36,9 @@ public class Stamping
      * <a href="https://drive.google.com/file/d/0B3-DPMN-iMOmNjItRVJ4MHRZX3M/view?usp=sharing">
      * template.pdf
      * </a>
+     * 
+     * ... as it turned out, the problem was not an iText issue at all; in the OP's web application
+     * the template.pdf had already been mangled by maven resource filtering.
      */
     @Test
     public void testStampTemplate() throws DocumentException, IOException
