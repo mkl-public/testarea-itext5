@@ -15,8 +15,9 @@ import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 
 /**
- * @author mklink
- *
+ * This test focuses on text extraction issues.
+ * 
+ * @author mkl
  */
 public class TextExtraction
 {
@@ -77,5 +78,4 @@ public class TextExtraction
     {
         return PdfTextExtractor.getTextFromPage(reader, pageNo, new LocationTextExtractionStrategy());
     }
-
 }
