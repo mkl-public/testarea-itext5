@@ -10,10 +10,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.pdf.PdfArray;
 import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfDictionary;
 import com.itextpdf.text.pdf.PdfImportedPage;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfNumber;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.PdfString;
 
 /**
  * This test is for inserting pages using a {@link PdfStamper}.
@@ -40,9 +45,9 @@ public class InsertPage
     @Test
     public void testInsertTitlePage() throws IOException, DocumentException
     {
-        try (   InputStream documentStream = getClass().getResourceAsStream("template.pdf");
+        try (   InputStream documentStream = getClass().getResourceAsStream("Labels.pdf");
                 InputStream titleStream = getClass().getResourceAsStream("title.pdf");
-                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "test-with-title-page.pdf"))    )
+                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "labels-with-title-page.pdf"))    )
         {
             PdfReader titleReader = new PdfReader(titleStream);
             PdfReader reader = new PdfReader(documentStream);
@@ -52,6 +57,32 @@ public class InsertPage
             stamper.insertPage(1, titleReader.getPageSize(1));
             PdfContentByte content = stamper.getUnderContent(1);
             content.addTemplate(page, 0, 0);
+
+            PdfDictionary root = reader.getCatalog();
+            PdfDictionary labels = root.getAsDict(PdfName.PAGELABELS);
+            if (labels != null)
+            {
+                PdfArray newNums = new PdfArray();
+                
+                newNums.add(new PdfNumber(0));
+                PdfDictionary coverDict = new PdfDictionary();
+                coverDict.put(PdfName.P, new PdfString("Cover Page"));
+                newNums.add(coverDict);
+
+                PdfArray nums = labels.getAsArray(PdfName.NUMS);
+                if (nums != null)
+                {
+                    for (int i = 0; i < nums.size() - 1; )
+                    {
+                        int n = nums.getAsNumber(i++).intValue();
+                        newNums.add(new PdfNumber(n+1));
+                        newNums.add(nums.getPdfObject(i++));
+                    }
+                }
+
+                labels.put(PdfName.NUMS, newNums);
+                stamper.markUsed(labels);
+            }
 
             stamper.close();
         }
