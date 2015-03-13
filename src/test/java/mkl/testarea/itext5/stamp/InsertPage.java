@@ -10,12 +10,16 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfAction;
+import com.itextpdf.text.pdf.PdfAnnotation;
 import com.itextpdf.text.pdf.PdfArray;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfDictionary;
 import com.itextpdf.text.pdf.PdfImportedPage;
 import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfNumber;
+import com.itextpdf.text.pdf.PdfObject;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PdfString;
@@ -46,8 +50,8 @@ public class InsertPage
     public void testInsertTitlePage() throws IOException, DocumentException
     {
         try (   InputStream documentStream = getClass().getResourceAsStream("Labels.pdf");
-                InputStream titleStream = getClass().getResourceAsStream("title.pdf");
-                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "labels-with-title-page.pdf"))    )
+                InputStream titleStream = getClass().getResourceAsStream("Cover.pdf");
+                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "labels-with-cover-page.pdf"))    )
         {
             PdfReader titleReader = new PdfReader(titleStream);
             PdfReader reader = new PdfReader(documentStream);
@@ -57,6 +61,7 @@ public class InsertPage
             stamper.insertPage(1, titleReader.getPageSize(1));
             PdfContentByte content = stamper.getUnderContent(1);
             content.addTemplate(page, 0, 0);
+            copyLinks(stamper, 1, titleReader, 1);
 
             PdfDictionary root = reader.getCatalog();
             PdfDictionary labels = root.getAsDict(PdfName.PAGELABELS);
@@ -87,4 +92,55 @@ public class InsertPage
             stamper.close();
         }
     }
+
+    /**
+     * <p>
+     * A primitive attempt at copying links from page <code>sourcePage</code>
+     * of <code>PdfReader reader</code> to page <code>targetPage</code> of
+     * <code>PdfStamper stamper</code>.
+     * </p>
+     * <p>
+     * This method is meant only for the use case at hand, i.e. copying a link
+     * to an external URI without expecting any advanced features.
+     * </p>
+     */
+    void copyLinks(PdfStamper stamper, int targetPage, PdfReader reader, int sourcePage)
+    {
+        PdfDictionary sourcePageDict = reader.getPageNRelease(sourcePage);
+        PdfArray annotations = sourcePageDict.getAsArray(PdfName.ANNOTS);
+        if (annotations != null && annotations.size() > 0)
+        {
+            for (PdfObject annotationObject : annotations)
+            {
+                annotationObject = PdfReader.getPdfObject(annotationObject);
+                if (!annotationObject.isDictionary())
+                    continue;
+                PdfDictionary annotation = (PdfDictionary) annotationObject;
+                if (!PdfName.LINK.equals(annotation.getAsName(PdfName.SUBTYPE)))
+                    continue;
+
+                PdfArray rectArray = annotation.getAsArray(PdfName.RECT);
+                if (rectArray == null || rectArray.size() < 4)
+                    continue;
+                Rectangle rectangle = PdfReader.getNormalizedRectangle(rectArray);
+
+                PdfName hightLight = annotation.getAsName(PdfName.H);
+                if (hightLight == null)
+                    hightLight = PdfAnnotation.HIGHLIGHT_INVERT;
+
+                PdfDictionary actionDict = annotation.getAsDict(PdfName.A);
+                if (actionDict == null || !PdfName.URI.equals(actionDict.getAsName(PdfName.S)))
+                    continue;
+                PdfString urlPdfString = actionDict.getAsString(PdfName.URI);
+                if (urlPdfString == null)
+                    continue;
+                PdfAction action = new PdfAction(urlPdfString.toString());
+
+                PdfAnnotation link = PdfAnnotation.createLink(stamper.getWriter(), rectangle, hightLight, action);
+                stamper.addAnnotation(link, targetPage);
+            }
+        }
+    }
+
+    
 }
