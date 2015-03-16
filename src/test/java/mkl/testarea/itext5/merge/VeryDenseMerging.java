@@ -16,15 +16,16 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.RectangleReadOnly;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfWriter;
 
 /**
- * This test is about merging PDFs tighter than by page.
+ * This test is about merging PDFs tighter than by page or source page.
  * 
  * @author mkl
  */
-public class DenseMerging
+public class VeryDenseMerging
 {
     final static File RESULT_FOLDER = new File("target/test-outputs/merge");
 
@@ -35,11 +36,11 @@ public class DenseMerging
     }
 
     /**
-     * <a href="http://stackoverflow.com/questions/27988503/how-can-i-combine-multiple-pdf-files-excluding-page-breaks-using-itextsharp">
-     * How can I combine multiple PDF files excluding page breaks using iTextSharp?
+     * <a href="http://stackoverflow.com/questions/28991291/how-to-remove-whitespace-on-merge">
+     * How To Remove Whitespace on Merge
      * </a>
      * <p>
-     * Testing {@link PdfDenseMergeTool}.
+     * Testing {@link PdfVeryDenseMergeTool}.
      * </p>
      */
     @Test
@@ -54,12 +55,12 @@ public class DenseMerging
         byte[] docD = createSimpleTextPdf("Fourth document, paragraph %s, let us make this a much longer paragraph spanning more than one line.", 3);
         Files.write(new File(RESULT_FOLDER, "textOnlyD.pdf").toPath(), docD);
 
-        PdfDenseMergeTool tool = new PdfDenseMergeTool(PageSize.A4, 18, 18, 5);
+        PdfVeryDenseMergeTool tool = new PdfVeryDenseMergeTool(PageSize.A4, 18, 18, 5);
         PdfReader readerA = new PdfReader(docA);
         PdfReader readerB = new PdfReader(docB);
         PdfReader readerC = new PdfReader(docC);
         PdfReader readerD = new PdfReader(docD);
-        try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "textOnlyMerge.pdf")))
+        try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "textOnlyMerge-veryDense.pdf")))
         {
             List<PdfReader> inputs = Arrays.asList(readerA, readerB, readerC, readerD);
             tool.merge(fos, inputs);
@@ -74,11 +75,11 @@ public class DenseMerging
     }
 
     /**
-     * <a href="http://stackoverflow.com/questions/27988503/how-can-i-combine-multiple-pdf-files-excluding-page-breaks-using-itextsharp">
-     * How can I combine multiple PDF files excluding page breaks using iTextSharp?
+     * <a href="http://stackoverflow.com/questions/28991291/how-to-remove-whitespace-on-merge">
+     * How To Remove Whitespace on Merge
      * </a>
      * <p>
-     * Testing {@link PdfDenseMergeTool}.
+     * Testing {@link PdfVeryDenseMergeTool}.
      * </p>
      */
     @Test
@@ -93,12 +94,12 @@ public class DenseMerging
         byte[] docD = createSimpleTextPdf("Fourth document, paragraph %s, let us make this a much longer paragraph spanning more than one line.", 20);
         Files.write(new File(RESULT_FOLDER, "textOnlyLongD.pdf").toPath(), docD);
 
-        PdfDenseMergeTool tool = new PdfDenseMergeTool(PageSize.A4, 18, 18, 5);
+        PdfVeryDenseMergeTool tool = new PdfVeryDenseMergeTool(PageSize.A4, 18, 18, 5);
         PdfReader readerA = new PdfReader(docA);
         PdfReader readerB = new PdfReader(docB);
         PdfReader readerC = new PdfReader(docC);
         PdfReader readerD = new PdfReader(docD);
-        try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "longTextOnlyMerge.pdf")))
+        try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "longTextOnlyMerge-veryDense.pdf")))
         {
             List<PdfReader> inputs = Arrays.asList(readerA, readerB, readerC, readerD);
             tool.merge(fos, inputs);
@@ -135,7 +136,7 @@ public class DenseMerging
      * How To Remove Whitespace on Merge
      * </a>
      * <p>
-     * Testing {@link PdfDenseMergeTool} using the OP's files.
+     * Testing {@link PdfVeryDenseMergeTool} using the OP's files.
      * </p>
      */
     @Test
@@ -145,11 +146,11 @@ public class DenseMerging
                 InputStream docB = getClass().getResourceAsStream("Body.pdf");
                 InputStream docC = getClass().getResourceAsStream("Footer.pdf");    )
         {
-            PdfDenseMergeTool tool = new PdfDenseMergeTool(PageSize.A4, 18, 18, 5);
+            PdfVeryDenseMergeTool tool = new PdfVeryDenseMergeTool(PageSize.A4, 18, 18, 5);
             PdfReader readerA = new PdfReader(docA);
             PdfReader readerB = new PdfReader(docB);
             PdfReader readerC = new PdfReader(docC);
-            try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "GrandizerMerge.pdf")))
+            try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "GrandizerMerge-veryDense.pdf")))
             {
                 List<PdfReader> inputs = Arrays.asList(readerA, readerB, readerC);
                 tool.merge(fos, inputs);
@@ -161,7 +162,38 @@ public class DenseMerging
                 readerC.close();
             }
         }
-    
     }    
     
+    /**
+     * <a href="http://stackoverflow.com/questions/28991291/how-to-remove-whitespace-on-merge">
+     * How To Remove Whitespace on Merge
+     * </a>
+     * <p>
+     * Testing {@link PdfVeryDenseMergeTool} using the OP's files on a even smaller page.
+     * </p>
+     */
+    @Test
+    public void testMergeGrandizerFilesA5() throws DocumentException, IOException
+    {
+        try (   InputStream docA = getClass().getResourceAsStream("Header.pdf");
+                InputStream docB = getClass().getResourceAsStream("Body.pdf");
+                InputStream docC = getClass().getResourceAsStream("Footer.pdf");    )
+        {
+            PdfVeryDenseMergeTool tool = new PdfVeryDenseMergeTool(new RectangleReadOnly(595,421), 18, 18, 5);
+            PdfReader readerA = new PdfReader(docA);
+            PdfReader readerB = new PdfReader(docB);
+            PdfReader readerC = new PdfReader(docC);
+            try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "GrandizerMerge-veryDense-A5.pdf")))
+            {
+                List<PdfReader> inputs = Arrays.asList(readerA, readerB, readerC);
+                tool.merge(fos, inputs);
+            }
+            finally
+            {
+                readerA.close();
+                readerB.close();
+                readerC.close();
+            }
+        }
+    }    
 }
