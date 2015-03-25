@@ -10,6 +10,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.ExceptionConverter;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
@@ -23,9 +24,6 @@ public class TextExtraction
 {
     final static File RESULT_FOLDER = new File("target/test-outputs", "extract");
 
-    /**
-     * @throws java.lang.Exception
-     */
     @BeforeClass
     public static void setUpBeforeClass() throws Exception
     {
@@ -49,6 +47,68 @@ public class TextExtraction
             System.out.println("\nText EICH-FinalEntriesforwebsite_Neutral.pdf\n************************");
             System.out.println(content);
             System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/29209553/itextsharp-pdftextextractor-gettextfrompage-throwing-nullreferenceexception">
+     * iTextSharp PdfTextExtractor GetTextFromPage Throwing NullReferenceException
+     * </a>
+     * 
+     * Test using a valid copy of stockQuotes_03232015.pdf from
+     * http://www.pse.com.ph/stockMarket/marketInfo-marketActivity.html?tab=4
+     */
+    @Test
+    public void testStockQuotes_03232015() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("stockQuotes_03232015.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "stockQuotes_03232015.%s.txt").toString());
+
+            System.out.println("\nText stockQuotes_03232015.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/29209553/itextsharp-pdftextextractor-gettextfrompage-throwing-nullreferenceexception">
+     * iTextSharp PdfTextExtractor GetTextFromPage Throwing NullReferenceException
+     * </a>
+     * 
+     * Test using an incomplete, invalid copy of stockQuotes_03232015.pdf from
+     * http://www.pse.com.ph/stockMarket/marketInfo-marketActivity.html?tab=4
+     */
+    @Test
+    public void testStockQuotes_03232015_Incomplete() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("stockQuotes_03232015-incomplete.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "stockQuotes_03232015-incomplete.%s.txt").toString());
+
+            System.out.println("\nText stockQuotes_03232015-incomplete.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        catch (ExceptionConverter e)
+        {
+            System.err.println("\nException for stockQuotes_03232015-incomplete.pdf\n************************");
+            e.printStackTrace();
+            System.err.println("************************");
         }
         finally
         {
