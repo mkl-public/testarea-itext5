@@ -117,6 +117,40 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/29300324/itext-pdf-bad-character-conversion">
+     * iText PDF bad character conversion
+     * </a>
+     * 
+     * Indeed, Information in the PDF are not good for immediate text extraction.
+     */
+    @Test
+    public void testBolletta_Anonima() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("Bolletta_Anonima.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "Bolletta_Anonima.%s.txt").toString());
+
+            System.out.println("\nText Bolletta_Anonima.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+            for (char c: content.toCharArray())
+            {
+                if (c == '\r' || c == '\n' || c==' ')
+                    System.out.print((char)(c));
+                else
+                    System.out.print((char)(c+0x1c));
+            }
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format) throws IOException
     {
         StringBuilder builder = new StringBuilder();
