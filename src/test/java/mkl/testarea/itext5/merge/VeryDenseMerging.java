@@ -169,6 +169,40 @@ public class VeryDenseMerging
      * How To Remove Whitespace on Merge
      * </a>
      * <p>
+     * Testing {@link PdfVeryDenseMergeTool} using the OP's files and a gap of 10. This was the
+     * OP's gap value of choice resulting in lost lines. Cannot reproduce...
+     * </p>
+     */
+    @Test
+    public void testMergeGrandizerFilesGap10() throws DocumentException, IOException
+    {
+        try (   InputStream docA = getClass().getResourceAsStream("Header.pdf");
+                InputStream docB = getClass().getResourceAsStream("Body.pdf");
+                InputStream docC = getClass().getResourceAsStream("Footer.pdf");    )
+        {
+            PdfVeryDenseMergeTool tool = new PdfVeryDenseMergeTool(PageSize.A4, 18, 18, 10);
+            PdfReader readerA = new PdfReader(docA);
+            PdfReader readerB = new PdfReader(docB);
+            PdfReader readerC = new PdfReader(docC);
+            try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "GrandizerMerge-veryDense-gap10.pdf")))
+            {
+                List<PdfReader> inputs = Arrays.asList(readerA, readerB, readerC);
+                tool.merge(fos, inputs);
+            }
+            finally
+            {
+                readerA.close();
+                readerB.close();
+                readerC.close();
+            }
+        }
+    }    
+    
+    /**
+     * <a href="http://stackoverflow.com/questions/28991291/how-to-remove-whitespace-on-merge">
+     * How To Remove Whitespace on Merge
+     * </a>
+     * <p>
      * Testing {@link PdfVeryDenseMergeTool} using the OP's files on a even smaller page.
      * </p>
      */
