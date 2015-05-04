@@ -21,7 +21,7 @@ import com.itextpdf.text.pdf.PdfWriter;
  * </a>
  * <p>
  * One can color the "outside" of some path by adding a page-sized rectangle around it and using the appropriate `fill`
- * method, cf {@link #testCreateFramedDocument()}. 
+ * method, cf {@link #testCreateFramedDocumentEoFill()} and {@link #testCreateFramedDocumentFill()}. 
  * </p<
  * 
  * @author mkl
@@ -37,20 +37,43 @@ public class CreateWithFrame
     }
 
     @Test
-    public void testCreateFramedDocument() throws FileNotFoundException, DocumentException
+    public void testCreateFramedDocumentEoFill() throws FileNotFoundException, DocumentException
     {
         Document document = new Document();
-        PdfWriter pdfWriter = PdfWriter.getInstance(document, new FileOutputStream(new File(RESULT_FOLDER, "framed.pdf")));
+        PdfWriter pdfWriter = PdfWriter.getInstance(document, new FileOutputStream(new File(RESULT_FOLDER, "framedEoFill.pdf")));
         pdfWriter.setPageEvent(new PdfPageEventHelper()
         {
             public void onEndPage(PdfWriter writer, Document document)
             {
                 super.onEndPage(writer, document);
                 PdfContentByte content = writer.getDirectContent();
-                content.setColorStroke(BaseColor.BLACK);
+                content.setColorFill(BaseColor.BLACK);
                 content.rectangle(writer.getPageSize().getLeft(), writer.getPageSize().getBottom(), writer.getPageSize().getWidth(), writer.getPageSize().getHeight());
                 content.roundRectangle(35f,55f, 520f, 750f ,20f);
                 content.eoFill();        
+            }    
+        });
+        document.open();
+
+        document.add(new Paragraph("Some page content goes in here..."));
+        document.close();
+    }
+
+    @Test
+    public void testCreateFramedDocumentFill() throws FileNotFoundException, DocumentException
+    {
+        Document document = new Document();
+        PdfWriter pdfWriter = PdfWriter.getInstance(document, new FileOutputStream(new File(RESULT_FOLDER, "framedFill.pdf")));
+        pdfWriter.setPageEvent(new PdfPageEventHelper()
+        {
+            public void onEndPage(PdfWriter writer, Document document)
+            {
+                super.onEndPage(writer, document);
+                PdfContentByte content = writer.getDirectContent();
+                content.setColorFill(BaseColor.BLACK);
+                content.rectangle(writer.getPageSize().getRight(), writer.getPageSize().getBottom(), -writer.getPageSize().getWidth(), writer.getPageSize().getHeight());
+                content.roundRectangle(35f,55f, 520f, 750f ,20f);
+                content.fill();
             }    
         });
         document.open();
