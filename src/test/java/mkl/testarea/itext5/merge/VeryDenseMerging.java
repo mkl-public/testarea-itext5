@@ -16,6 +16,7 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.RectangleReadOnly;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfWriter;
@@ -113,6 +114,45 @@ public class VeryDenseMerging
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/28991291/how-to-remove-whitespace-on-merge">
+     * How To Remove Whitespace on Merge
+     * </a>
+     * <p>
+     * Testing {@link PdfVeryDenseMergeTool}.
+     * </p>
+     */
+    @Test
+    public void testMergeOnlyGraphics() throws DocumentException, IOException
+    {
+        byte[] docA = createSimpleCircleGraphicsPdf(20, 20, 20);
+        Files.write(new File(RESULT_FOLDER, "circlesOnlyA.pdf").toPath(), docA);
+        byte[] docB = createSimpleCircleGraphicsPdf(50, 10, 2);
+        Files.write(new File(RESULT_FOLDER, "circlesOnlyB.pdf").toPath(), docB);
+        byte[] docC = createSimpleCircleGraphicsPdf(100, -20, 3);
+        Files.write(new File(RESULT_FOLDER, "circlesOnlyC.pdf").toPath(), docC);
+        byte[] docD = createSimpleCircleGraphicsPdf(20, 20, 20);
+        Files.write(new File(RESULT_FOLDER, "circlesOnlyD.pdf").toPath(), docD);
+
+        PdfVeryDenseMergeTool tool = new PdfVeryDenseMergeTool(PageSize.A4, 18, 18, 5);
+        PdfReader readerA = new PdfReader(docA);
+        PdfReader readerB = new PdfReader(docB);
+        PdfReader readerC = new PdfReader(docC);
+        PdfReader readerD = new PdfReader(docD);
+        try (FileOutputStream fos = new FileOutputStream(new File(RESULT_FOLDER, "circlesOnlyMerge-veryDense.pdf")))
+        {
+            List<PdfReader> inputs = Arrays.asList(readerA, readerB, readerC, readerD);
+            tool.merge(fos, inputs);
+        }
+        finally
+        {
+            readerA.close();
+            readerB.close();
+            readerC.close();
+            readerD.close();
+        }
+    }
+    
     static byte[] createSimpleTextPdf(String paragraphFormat, int paragraphCount) throws DocumentException
     {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -126,6 +166,33 @@ public class VeryDenseMerging
             paragraph.add(String.format(paragraphFormat, i));
             document.add(paragraph);
         }
+        document.close();
+
+        return baos.toByteArray();
+    }
+
+    static byte[] createSimpleCircleGraphicsPdf(int radius, int gap, int count) throws DocumentException
+    {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        Document document = new Document();
+        PdfWriter writer = PdfWriter.getInstance(document, baos);
+        document.open();
+
+        float y = writer.getPageSize().getTop();
+        for (int i = 0; i < count; i++)
+        {
+            Rectangle pageSize = writer.getPageSize();
+            if (y <= pageSize.getBottom() + 2*radius)
+            {
+                y = pageSize.getTop();
+                writer.getDirectContent().fillStroke();
+                document.newPage();
+            }
+            writer.getDirectContent().circle(pageSize.getLeft() + pageSize.getWidth() * Math.random(), y-radius, radius);
+            y-= 2*radius + gap;
+        }
+        writer.getDirectContent().fillStroke();
         document.close();
 
         return baos.toByteArray();

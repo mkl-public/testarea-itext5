@@ -4,24 +4,32 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import com.itextpdf.text.pdf.parser.ExtRenderListener;
 import com.itextpdf.text.pdf.parser.ImageRenderInfo;
 import com.itextpdf.text.pdf.parser.LineSegment;
 import com.itextpdf.text.pdf.parser.Matrix;
-import com.itextpdf.text.pdf.parser.RenderListener;
+import com.itextpdf.text.pdf.parser.Path;
+import com.itextpdf.text.pdf.parser.PathConstructionRenderInfo;
+import com.itextpdf.text.pdf.parser.PathPaintingRenderInfo;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 import com.itextpdf.text.pdf.parser.Vector;
 
 /**
- * This {@link RenderListener}looks for vertical sections of use in a page.
+ * This {@link ExtRenderListener}looks for vertical sections of use in a page.
+ * <p>
+ * Beware, this is a mere proof of concept. Especially {@link #modifyPath(PathConstructionRenderInfo)}
+ * needs to be improved, see the comment there.
  * 
  * @author mkl
  */
-public class PageVerticalAnalyzer implements RenderListener
+public class PageVerticalAnalyzer implements ExtRenderListener
 {
     @Override
     public void beginTextBlock() { }
     @Override
     public void endTextBlock() { }
+    @Override
+    public void clipPath(int rule) { }
 
     /*
      * @see RenderListener#renderText(TextRenderInfo)
@@ -59,6 +67,112 @@ public class PageVerticalAnalyzer implements RenderListener
         addVerticalUseSection(yCoords[0], yCoords[3]);
     }
 
+    static class SubPathSection
+    {
+        public SubPathSection(float x, float y, Matrix m)
+        {
+            float effectiveY = getTransformedY(x, y, m);
+            pathFromY = effectiveY;
+            pathToY = effectiveY;
+        }
+
+        void extendTo(float x, float y, Matrix m)
+        {
+            float effectiveY = getTransformedY(x, y, m);
+            if (effectiveY < pathFromY)
+                pathFromY = effectiveY;
+            else if (effectiveY > pathToY)
+                pathToY = effectiveY;
+        }
+        
+        float getTransformedY(float x, float y, Matrix m)
+        {
+            return new Vector(x, y, 1).cross(m).get(Vector.I2);
+        }
+        
+        float getFromY()
+        {
+            return pathFromY;
+        }
+        
+        float getToY()
+        {
+            return pathToY;
+        }
+        
+        private float pathFromY;
+        private float pathToY;
+    }
+
+    /*
+     * Beware: The implementation is not correct as it includes the control points of curves
+     * which may be far outside the actual curve.
+     * 
+     * @see ExtRenderListener#modifyPath(PathConstructionRenderInfo)
+     */
+    @Override
+    public void modifyPath(PathConstructionRenderInfo renderInfo)
+    {
+        Matrix ctm = renderInfo.getCtm();
+        List<Float> segmentData = renderInfo.getSegmentData();
+
+        switch (renderInfo.getOperation())
+        {
+        case PathConstructionRenderInfo.MOVETO:
+            subPath = null;
+        case PathConstructionRenderInfo.LINETO:
+        case PathConstructionRenderInfo.CURVE_123:
+        case PathConstructionRenderInfo.CURVE_13:
+        case PathConstructionRenderInfo.CURVE_23:
+            for (int i = 0; i < segmentData.size()-1; i+=2)
+            {
+                if (subPath == null)
+                {
+                    subPath = new SubPathSection(segmentData.get(i), segmentData.get(i+1), ctm);
+                    path.add(subPath);
+                }
+                else
+                    subPath.extendTo(segmentData.get(i), segmentData.get(i+1), ctm);
+            }
+            break;
+        case PathConstructionRenderInfo.RECT:
+            float x = segmentData.get(0);
+            float y = segmentData.get(1);
+            float w = segmentData.get(2);
+            float h = segmentData.get(3);
+            SubPathSection section = new SubPathSection(x, y, ctm);
+            section.extendTo(x+w, y, ctm);
+            section.extendTo(x, y+h, ctm);
+            section.extendTo(x+w, y+h, ctm);
+            path.add(section);
+        case PathConstructionRenderInfo.CLOSE:
+            subPath = null;
+            break;
+        default:
+                
+        }
+    }
+
+    /*
+     * @see ExtRenderListener#renderPath(PathPaintingRenderInfo)
+     */
+    @Override
+    public Path renderPath(PathPaintingRenderInfo renderInfo)
+    {
+        if (renderInfo.getOperation() != PathPaintingRenderInfo.NO_OP)
+        {
+            for (SubPathSection section : path)
+                addVerticalUseSection(section.getFromY(), section.getToY());
+        }
+
+        path.clear();
+        subPath = null;
+        return null;
+    }
+
+    List<SubPathSection> path = new ArrayList<SubPathSection>();
+    SubPathSection subPath = null;
+    
     /**
      * This method marks the given interval as used.
      */
