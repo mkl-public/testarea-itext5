@@ -151,6 +151,40 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/30242538/pdf-contains-text-but-itextpdf-dont-see-it">
+     * PDF contains text, but ITextPDF dont see it
+     * </a>
+     * 
+     * Indeed, Information in the PDF are not good for immediate text extraction.
+     */
+    @Test
+    public void testTestLukasRr() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("testLukasRr.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "testLukasRr.%s.txt").toString());
+
+            System.out.println("\nText testLukasRr.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+            for (char c: content.toCharArray())
+            {
+                if (c == '\r' || c == '\n' || c==' ')
+                    System.out.print((char)(c));
+                else
+                    System.out.print((char)(c+0x1c));
+            }
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format) throws IOException
     {
         StringBuilder builder = new StringBuilder();
