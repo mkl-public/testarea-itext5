@@ -24,6 +24,7 @@ import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.parser.ExtRenderListener;
 import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
 import com.itextpdf.text.pdf.parser.RenderListener;
 
@@ -32,7 +33,7 @@ import com.itextpdf.text.pdf.parser.RenderListener;
  * How can I can insert an image or stamp on a pdf where there is free space available like a density scanner
  * </a>
  * 
- * This tests the original {@link RenderListener} presented as an answer.
+ * This tests the {@link RenderListener} originally presented as an answer and also the {@link ExtRenderListener} improving that answer.
  */
 public class FindFreeSpace
 {
@@ -51,66 +52,77 @@ public class FindFreeSpace
     public void testZugferd_20x20() throws IOException, DocumentException
     {
         test("zugferd_add_xml_to_pdf.pdf", 20, 20);
+        testExt("zugferd_add_xml_to_pdf.pdf", 20, 20);
     }
 
     @Test
     public void testZugferd_200x50() throws IOException, DocumentException
     {
         test("zugferd_add_xml_to_pdf.pdf", 200, 50);
+        testExt("zugferd_add_xml_to_pdf.pdf", 200, 50);
     }
 
     @Test
     public void testZugferd_200x200() throws IOException, DocumentException
     {
         test("zugferd_add_xml_to_pdf.pdf", 200, 200);
+        testExt("zugferd_add_xml_to_pdf.pdf", 200, 200);
     }
 
     @Test
     public void testN2013_20x20() throws IOException, DocumentException
     {
         test("n2013.00849449.pdf", 20, 20);
+        testExt("n2013.00849449.pdf", 20, 20);
     }
 
     @Test
     public void testTest_20x20() throws IOException, DocumentException
     {
         test("test.pdf", 20, 20);
+        testExt("test.pdf", 20, 20);
     }
 
     @Test
     public void testTest_200x100() throws IOException, DocumentException
     {
         test("test.pdf", 200, 100);
+        testExt("test.pdf", 200, 100);
     }
 
     @Test
     public void testTest_200x200() throws IOException, DocumentException
     {
         test("test.pdf", 200, 200);
+        testExt("test.pdf", 200, 200);
     }
 
     @Test
     public void testSample1_20x20() throws IOException, DocumentException
     {
         test("Sample_1.pdf", 20, 20);
+        testExt("Sample_1.pdf", 20, 20);
     }
 
     @Test
     public void testSample1_200x200() throws IOException, DocumentException
     {
         test("Sample_1.pdf", 200, 200);
+        testExt("Sample_1.pdf", 200, 200);
     }
 
     @Test
     public void testPreface_20x20() throws IOException, DocumentException
     {
         test("preface.pdf", 20, 20);
+        testExt("preface.pdf", 20, 20);
     }
 
     @Test
     public void testPreface_200x200() throws IOException, DocumentException
     {
         test("preface.pdf", 200, 200);
+        testExt("preface.pdf", 200, 200);
     }
 
     void test(String resource, float minWidth, float minHeight) throws IOException, DocumentException
@@ -124,6 +136,36 @@ public class FindFreeSpace
             System.out.printf("\nFree %.0fx%.0f regions in %s\n", minWidth, minHeight, name);
 
             Collection<Rectangle2D> rectangles = find(reader, minWidth, minHeight, 1);
+            print(rectangles);
+
+            PdfStamper stamper = new PdfStamper(reader, new FileOutputStream(new File(RESULT_FOLDER, target)));
+            PdfContentByte over = stamper.getOverContent(1);
+
+            enhance(over, rectangles);
+            Point2D[] points = getPointsOfInterest(reader.getCropBox(1));
+            for (int i = 0; i < points.length; i++)
+                enhance(over, rectangles, points[i], colors[i]);
+
+            stamper.close();
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    void testExt(String resource, float minWidth, float minHeight) throws IOException, DocumentException
+    {
+        String name = new File(resource).getName();
+        String target = String.format("%s-freeSpaceExt%.0fx%.0f.pdf", name, minWidth, minHeight);
+        InputStream resourceStream = getClass().getResourceAsStream(resource);
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            System.out.printf("\nFree %.0fx%.0f regions in %s\n", minWidth, minHeight, name);
+
+            Collection<Rectangle2D> rectangles = findExt(reader, minWidth, minHeight, 1);
             print(rectangles);
 
             PdfStamper stamper = new PdfStamper(reader, new FileOutputStream(new File(RESULT_FOLDER, target)));
@@ -312,6 +354,16 @@ public class FindFreeSpace
         Rectangle cropBox = reader.getCropBox(page);
         Rectangle2D crop = new Rectangle2D.Float(cropBox.getLeft(), cropBox.getBottom(), cropBox.getWidth(), cropBox.getHeight());
         FreeSpaceFinder finder = new FreeSpaceFinder(crop, minWidth, minHeight);
+        PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+        parser.processContent(page, finder);
+        return finder.freeSpaces;
+    }
+
+    public Collection<Rectangle2D> findExt(PdfReader reader, float minWidth, float minHeight, int page) throws IOException
+    {
+        Rectangle cropBox = reader.getCropBox(page);
+        Rectangle2D crop = new Rectangle2D.Float(cropBox.getLeft(), cropBox.getBottom(), cropBox.getWidth(), cropBox.getHeight());
+        FreeSpaceFinder finder = new FreeSpaceFinderExt(crop, minWidth, minHeight);
         PdfReaderContentParser parser = new PdfReaderContentParser(reader);
         parser.processContent(page, finder);
         return finder.freeSpaces;
