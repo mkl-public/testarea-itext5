@@ -52,6 +52,22 @@ public class VerifyAcroFormSignatures
     }
 
     /**
+     * Checking the signatures in a file signed along the lines of
+     * <a href="http://stackoverflow.com/questions/30400728/signing-pdf-with-pdfbox-and-bouncycastle">
+     * Signing PDF with PDFBox and BouncyCastle
+     * </a> by LoneWolf on stackoverflow, cf. {@link mkl.testarea.pdfbox1.sign.SignLikeLoneWolf}.
+     */
+    @Test
+    public void testTest_signedLikeLoneWolf() throws IOException, GeneralSecurityException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("test_signedLikeLoneWolf.pdf")   )
+        {
+            PdfReader reader = new PdfReader(resource);
+            verify(reader);
+        }
+    }
+
+    /**
      * Checking the signatures in the OP's file referenced from the AcroForm Fields.  
      */
     @Test
