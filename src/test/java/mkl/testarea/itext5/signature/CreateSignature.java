@@ -67,7 +67,8 @@ public class CreateSignature
      * <p>
      * {@link #sign50MNaive()} tests the naive approach,
      * {@link #sign50MBruno()} tests Bruno's original approach,
-     * {@link #sign50MBrunoPartial()} tests Bruno's approach with partial reading, and
+     * {@link #sign50MBrunoPartial()} tests Bruno's approach with partial reading,
+     * {@link #sign50MBrunoAppend()} tests Bruno's approach with append mode, and
      * {@link #sign50MBrunoPartialAppend()} tests Bruno's approach with partial reading and append mode.
      * </p>
      */
@@ -148,6 +149,31 @@ public class CreateSignature
 
     //runs with -Xmx7m, fails with -Xmx6m
     @Test
+    public void sign50MBrunoAppend() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String filepath = "src/test/resources/mkl/testarea/itext5/signature/50m.pdf";
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(filepath);
+        FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "50m-signedBrunoAppend.pdf"));
+        PdfStamper stamper =
+            PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setReason("reason");
+        appearance.setLocation("location");
+        appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+        // Creating the signature
+        ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+        ExternalDigest digest = new BouncyCastleDigest();
+        MakeSignature.signDetached(appearance, digest, pks, chain,
+            null, null, null, 0, subfilter);
+    }
+
+    //runs with -Xmx7m, fails with -Xmx6m
+    @Test
     public void sign50MBrunoPartialAppend() throws IOException, DocumentException, GeneralSecurityException
     {
         String filepath = "src/test/resources/mkl/testarea/itext5/signature/50m.pdf";
@@ -170,5 +196,4 @@ public class CreateSignature
         MakeSignature.signDetached(appearance, digest, pks, chain,
             null, null, null, 0, subfilter);
     }
-
 }
