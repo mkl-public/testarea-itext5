@@ -185,6 +185,40 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/30536032/exceptionconverter-com-itextpdf-text-pdf-parser-inlineimageutilsinlineimagepars">
+     * ExceptionConverter com.itextpdf.text.pdf.parser.InlineImageUtils$InlineImageParseException: Could not find image data or EI 420
+     * </a>
+     * <br>
+     * <a href="https://www.dropbox.com/s/4l4ioqzpcca05vc/Understanding%20the%20High%20Photocatalytic%20Activity%20of%20%28B%2C%20Ag%29-Codopeda312205c_si_001.pdf?dl=0">
+     * "Understanding the High Photocatalytic Activity of (B, Ag)-Codopeda312205c_si_001.pdf"
+     * </a>
+     * 
+     * Indeed, PdfReader.decodeBytes() throws an exception because it retrieves a PDF NULL as PdfLiteral, not as null oder PdfNull.
+     * 
+     * @throws IOException
+     * @throws DocumentException
+     */
+    @Test
+    public void testUnderstandingTheHighPhotocatalyticActivity() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("Understanding the High Photocatalytic Activity of (B, Ag)-Codopeda312205c_si_001.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "Understanding the High Photocatalytic Activity of (B, Ag)-Codopeda312205c_si_001.%s.txt").toString());
+
+            System.out.println("\nText Understanding the High Photocatalytic Activity of (B, Ag)-Codopeda312205c_si_001.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format) throws IOException
     {
         StringBuilder builder = new StringBuilder();
