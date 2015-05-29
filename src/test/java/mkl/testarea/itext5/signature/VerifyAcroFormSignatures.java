@@ -51,6 +51,28 @@ public class VerifyAcroFormSignatures
         Security.insertProviderAt(bcp, 1);
     }
 
+    @Test
+    public void testSigned_g() throws IOException, GeneralSecurityException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("signed_g.pdf")   )
+        {
+            System.out.printf("\nsigned_g.pdf\n------------\n");
+            PdfReader reader = new PdfReader(resource);
+            verify(reader);
+        }
+    }
+
+    @Test
+    public void testSigned_2g() throws IOException, GeneralSecurityException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("signed_2g.pdf")   )
+        {
+            System.out.printf("\nsigned_2g.pdf\n-------------\n");
+            PdfReader reader = new PdfReader(resource);
+            verify(reader);
+        }
+    }
+
     /**
      * Checking the signatures in a file signed along the lines of
      * <a href="http://stackoverflow.com/questions/30400728/signing-pdf-with-pdfbox-and-bouncycastle">
@@ -62,6 +84,7 @@ public class VerifyAcroFormSignatures
     {
         try (   InputStream resource = getClass().getResourceAsStream("test_signedLikeLoneWolf.pdf")   )
         {
+            System.out.printf("\ntest_signedLikeLoneWolf.pdf\n------------\n");
             PdfReader reader = new PdfReader(resource);
             verify(reader);
         }
@@ -75,6 +98,7 @@ public class VerifyAcroFormSignatures
     {
         try (   InputStream resource = getClass().getResourceAsStream("FirstPage11P0022AD_20150202164018_307494.pdf")   )
         {
+            System.out.printf("\nFirstPage11P0022AD_20150202164018_307494.pdf\n------------\n");
             PdfReader reader = new PdfReader(resource);
             verify(reader);
         }

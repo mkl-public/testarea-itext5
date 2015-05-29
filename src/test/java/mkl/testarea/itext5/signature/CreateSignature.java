@@ -196,4 +196,118 @@ public class CreateSignature
         MakeSignature.signDetached(appearance, digest, pks, chain,
             null, null, null, 0, subfilter);
     }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/30526254/sign-concatenated-pdf-in-append-mode-with-certified-no-changes-allowed">
+     * Sign concatenated PDF in append mode with CERTIFIED_NO_CHANGES_ALLOWED
+     * </a>
+     * <br>
+     * <a href="https://www.dropbox.com/s/lea6r9fup6th44c/test_pdf.zip?dl=0">test_pdf.zip</a>
+     * 
+     * {@link #signCertifyG()} certifies g.pdf, OK
+     * {@link #sign2g()} merely signs 2g.pdf, OK
+     * {@link #signCertify2g()} certifies 2g.pdf, Adobe says invalid
+     * {@link #signCertify2gFix()} certifies 2g-fix.pdf, Adobe still says invalid
+     * 
+     * 2g-fix.pdf is a patched version of 2g.pdf with a valid /Size trailer entry
+     */
+    @Test
+    public void signCertifyG() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String filepath = "src/test/resources/mkl/testarea/itext5/signature/g.pdf";
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(filepath, null, true);
+        FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "g-certified.pdf"));
+        PdfStamper stamper =
+            PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+        appearance.setReason("reason");
+        appearance.setLocation("location");
+        appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+        // Creating the signature
+        ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+        ExternalDigest digest = new BouncyCastleDigest();
+        MakeSignature.signDetached(appearance, digest, pks, chain,
+            null, null, null, 0, subfilter);
+    }
+
+    @Test
+    public void sign2g() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String filepath = "src/test/resources/mkl/testarea/itext5/signature/2g.pdf";
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(filepath, null, true);
+        FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "2g-signed.pdf"));
+        PdfStamper stamper =
+            PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        //appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+        appearance.setReason("reason");
+        appearance.setLocation("location");
+        appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+        // Creating the signature
+        ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+        ExternalDigest digest = new BouncyCastleDigest();
+        MakeSignature.signDetached(appearance, digest, pks, chain,
+            null, null, null, 0, subfilter);
+    }
+
+    @Test
+    public void signCertify2g() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String filepath = "src/test/resources/mkl/testarea/itext5/signature/2g.pdf";
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(filepath, null, true);
+        FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "2g-certified.pdf"));
+        PdfStamper stamper =
+            PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+        appearance.setReason("reason");
+        appearance.setLocation("location");
+        appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+        // Creating the signature
+        ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+        ExternalDigest digest = new BouncyCastleDigest();
+        MakeSignature.signDetached(appearance, digest, pks, chain,
+            null, null, null, 0, subfilter);
+    }
+
+    @Test
+    public void signCertify2gFix() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String filepath = "src/test/resources/mkl/testarea/itext5/signature/2g-fix.pdf";
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(filepath, null, true);
+        FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "2g-fix-certified.pdf"));
+        PdfStamper stamper =
+            PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+        appearance.setReason("reason");
+        appearance.setLocation("location");
+        appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+        // Creating the signature
+        ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+        ExternalDigest digest = new BouncyCastleDigest();
+        MakeSignature.signDetached(appearance, digest, pks, chain,
+            null, null, null, 0, subfilter);
+    }
 }
