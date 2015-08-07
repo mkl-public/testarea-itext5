@@ -174,7 +174,7 @@ public class PortfolioFileExtraction
         PdfDictionary refs = filespec.getAsDict(PdfName.EF);
 
         File dirHere = dir;
-        String nameString = name.toString();
+        String nameString = name.toUnicodeString();
         if (nameString.startsWith("<"))
         {
             int closing = nameString.indexOf('>');
