@@ -164,7 +164,12 @@ public class MarginFinder implements ExtRenderListener {
     public Path renderPath(PathPaintingRenderInfo renderInfo)
     {
         if (renderInfo.getOperation() != PathPaintingRenderInfo.NO_OP)
-            textRectangle.add(currentPathRectangle);
+        {
+            if (textRectangle == null)
+                textRectangle = currentPathRectangle;
+            else
+                textRectangle.add(currentPathRectangle);
+        }
         currentPathRectangle = null;
 
         return null;
