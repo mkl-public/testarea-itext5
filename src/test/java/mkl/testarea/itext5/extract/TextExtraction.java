@@ -14,6 +14,7 @@ import com.itextpdf.text.ExceptionConverter;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
+import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
 
 /**
  * This test focuses on text extraction issues.
@@ -219,6 +220,41 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/32014589/how-to-read-data-from-table-structured-pdf-using-itextsharp">
+     * How to read data from table-structured PDF using itextsharp?
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/jwsuu6mz9ez84ss/sampleFile.pdf?dl=0">
+     * sampleFile.pdf
+     * </a>
+     * <p>
+     * By explicitly using the {@link SimpleTextExtractionStrategy} one gets the same text
+     * as with PDFBox.
+     * </p>
+     * 
+     * @see mkl.testarea.pdfbox1.extract.ExtractText
+     */
+    @Test
+    public void testsampleFile() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("sampleFile.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "sampleFile.%s.txt").toString());
+
+            System.out.println("\nText (simple strategy) sampleFile.pdf \n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format) throws IOException
     {
         StringBuilder builder = new StringBuilder();
@@ -239,5 +275,27 @@ public class TextExtraction
     String extract(PdfReader reader, int pageNo) throws IOException
     {
         return PdfTextExtractor.getTextFromPage(reader, pageNo, new LocationTextExtractionStrategy());
+    }
+
+    String extractAndStoreSimple(PdfReader reader, String format) throws IOException
+    {
+        StringBuilder builder = new StringBuilder();
+
+        for (int page = 1; page <= reader.getNumberOfPages(); page++)
+        {
+            String pageText = extractSimple(reader, page);
+            Files.write(Paths.get(String.format(format, page)), pageText.getBytes("UTF8"));
+
+            if (page > 1)
+                builder.append("\n\n");
+            builder.append(pageText);
+        }
+
+        return builder.toString();
+    }
+
+    String extractSimple(PdfReader reader, int pageNo) throws IOException
+    {
+        return PdfTextExtractor.getTextFromPage(reader, pageNo, new SimpleTextExtractionStrategy());
     }
 }
