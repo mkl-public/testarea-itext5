@@ -32,6 +32,34 @@ public class TextExtraction
     }
 
     /**
+     * <a href="http://stackoverflow.com/questions/32081406/why-is-itext-failing-to-extract-this-text">
+     * Why is iText failing to extract this text?
+     * </a>
+     * <p>
+     * As Bruno indicated, current iText does not have an issue here.
+     * </p>
+     */
+    @Test
+    public void testA00031() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("A00031.PDF");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "A00031.%s.txt").toString());
+
+            System.out.println("\nText A00031.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * Problems with extracting table from PDF
      * http://stackoverflow.com/questions/28828021/problems-with-extracting-table-from-pdf
      * http://www.european-athletics.org/mm/Document/EventsMeetings/General/01/27/52/10/EICH-FinalEntriesforwebsite_Neutral.pdf
