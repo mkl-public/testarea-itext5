@@ -15,6 +15,7 @@ import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
+import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 /**
  * This test focuses on text extraction issues.
@@ -264,7 +265,7 @@ public class TextExtraction
      * @see mkl.testarea.pdfbox1.extract.ExtractText
      */
     @Test
-    public void testsampleFile() throws IOException, DocumentException
+    public void testSampleFile() throws IOException, DocumentException
     {
         InputStream resourceStream = getClass().getResourceAsStream("sampleFile.pdf");
         try
@@ -324,6 +325,42 @@ public class TextExtraction
 
     String extractSimple(PdfReader reader, int pageNo) throws IOException
     {
-        return PdfTextExtractor.getTextFromPage(reader, pageNo, new SimpleTextExtractionStrategy());
+        return PdfTextExtractor.getTextFromPage(reader, pageNo, new SimpleTextExtractionStrategy()
+        {
+            boolean empty = true;
+
+            @Override
+            public void beginTextBlock()
+            {
+                if (!empty)
+                    appendTextChunk("<BLOCK>");
+                super.beginTextBlock();
+            }
+
+            @Override
+            public void endTextBlock()
+            {
+                if (!empty)
+                    appendTextChunk("</BLOCK>\n");
+                super.endTextBlock();
+            }
+
+            @Override
+            public String getResultantText()
+            {
+                if (empty)
+                    return super.getResultantText();
+                else
+                    return "<BLOCK>" + super.getResultantText();
+            }
+
+            @Override
+            public void renderText(TextRenderInfo renderInfo)
+            {
+                empty = false;
+                super.renderText(renderInfo);
+            }
+            
+        });
     }
 }
