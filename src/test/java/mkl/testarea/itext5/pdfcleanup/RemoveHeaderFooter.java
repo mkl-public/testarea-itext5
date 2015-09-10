@@ -49,7 +49,8 @@ public class RemoveHeaderFooter
      * <p>
      * Using iText 5.5.6 there indeed is an exception, and the page during the cleanup of which the exception
      * occured, is blank. Using the current 5.5.7-SNAPSHOT, though, no exception is thrown and no page is
-     * blanked. Issues can be observed, though, on landscape pages of the test file.
+     * blanked. Issues can be observed, though, on landscape pages of the test file. These can be prevented
+     * by using <code>stamper.setRotateContents(false)</code> in {@link #cleanUpContent(PdfReader, String, float, float, boolean)}.
      * </p>
      */
     @Test
@@ -77,7 +78,8 @@ public class RemoveHeaderFooter
      * <p>
      * Using iText 5.5.6, though there is an exception, and the page during the cleanup of which the exception
      * occured, is blank. Using the current 5.5.7-SNAPSHOT, on the other hand, no exception is thrown and no
-     * page is blanked. Issues can be observed, though, on landscape pages of the test file.
+     * page is blanked. Issues can be observed, though, on landscape pages of the test file. These can be prevented
+     * by using <code>stamper.setRotateContents(false)</code> in {@link #cleanUpContent(PdfReader, String, float, float, boolean)}.
      * </p>
      */
     @Test
@@ -105,11 +107,16 @@ public class RemoveHeaderFooter
      * This is the original code by the OP whith minor changes to render it runnable
      * in this testarea project.
      * </p>
+     * <p>
+     * Issues observed on landscape pages of the test file can be prevented by using
+     * <code>stamper.setRotateContents(false)</code>, see below.
+     * </p>
      */
     public static void cleanUpContent(PdfReader reader,String targetPDFFile, float upperY, float lowerY, boolean highLightColor) throws Exception
     {
         OutputStream outputStream = new FileOutputStream(targetPDFFile);
         PdfStamper stamper = new PdfStamper(reader, outputStream);
+        //stamper.setRotateContents(false);
         List<PdfCleanUpLocation> cleanUpLocations = new ArrayList<PdfCleanUpLocation>();
 
         for (int i = 1; i <= reader.getNumberOfPages(); i++)
