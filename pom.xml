@@ -24,7 +24,7 @@
 
   <properties>
     <junit.version>4.7</junit.version>
-    <itextpdf.version>5.5.7-SNAPSHOT</itextpdf.version>
+    <itextpdf.version>5.5.8-SNAPSHOT</itextpdf.version>
   </properties>
 	<dependencies>
 		<dependency>
