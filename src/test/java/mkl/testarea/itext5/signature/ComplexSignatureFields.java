@@ -80,4 +80,41 @@ public class ComplexSignatureFields
             null, null, null, 0, subfilter);
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/32818522/itextsharp-setvisiblesignature-not-working-as-expected">
+     * ITextSharp SetVisibleSignature not working as expected
+     * </a>
+     * <p>
+     * The issue observed by the OP (user2699460) occurs since iText(Sharp) 5.5.7
+     * both of iText and iTextSharp.
+     * </p>
+     * <p>
+     * The file signed in this sample, test-2-user2699460-signed.pdf, has been created
+     * as intermediary result using a simplified version of the OP's c# code. 
+     * </p>
+     */
+    @Test
+    public void signTest_2_user2699460() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String filepath = "src/test/resources/mkl/testarea/itext5/signature/test-2-user2699460.pdf";
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(filepath, null, true);
+        FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "test-2-user2699460-signed.pdf"));
+        PdfStamper stamper =
+            PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        //appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+        appearance.setReason("reason");
+        appearance.setLocation("location");
+        appearance.setVisibleSignature("Bunker");
+        // Creating the signature
+        ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+        ExternalDigest digest = new BouncyCastleDigest();
+        MakeSignature.signDetached(appearance, digest, pks, chain,
+            null, null, null, 0, subfilter);
+    }
 }
