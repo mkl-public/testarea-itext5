@@ -33,6 +33,39 @@ public class TextExtraction
     }
 
     /**
+     * <a href="http://stackoverflow.com/questions/32815291/itextsharp-cant-read-numbers-in-this-pdf">
+     * iTextSharp can't read numbers in this PDF
+     * </a>
+     * <br/>
+     * <a href="http://www.bnpparibas-ip.sg/doc/fact/FACTSHEET05ENSG07100715FO02332302.pdf">
+     * FACTSHEET05ENSG07100715FO02332302.pdf
+     * </a>
+     * <p>
+     * Indeed, neither iText nor iTextSharp could extract certain digits at the time
+     * of that question. Meanwhile, though, the issue seems fixed.
+     * </p>
+     */
+    @Test
+    public void testFACTSHEET05ENSG07100715FO02332302() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("FACTSHEET05ENSG07100715FO02332302.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "FACTSHEET05ENSG07100715FO02332302.%s.txt").toString());
+
+            System.out.println("\nText FACTSHEET05ENSG07100715FO02332302.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * <a href="http://stackoverflow.com/questions/32081406/why-is-itext-failing-to-extract-this-text">
      * Why is iText failing to extract this text?
      * </a>
