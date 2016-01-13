@@ -7,14 +7,26 @@ import java.io.IOException;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.itextpdf.awt.geom.AffineTransform;
 import com.itextpdf.text.Anchor;
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
+import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PdfAnnotation;
+import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfGState;
+import com.itextpdf.text.pdf.PdfIndirectReference;
+import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfStream;
+import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 
 /**
@@ -95,4 +107,55 @@ public class CreateLink
         doc.close();
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/34734669/define-background-color-and-transparency-of-link-annotation-in-pdf">
+     * Define background color and transparency of link annotation in PDF
+     * </a>
+     * <p>
+     * This test creates a link annotation with custom appearance. Adobe Reader chooses
+     * to ignore it but other viewers use it. Interestingly Adobe Acrobat export-as-image
+     * does use the custom appearance...
+     * </p>
+     */
+    @Test
+    public void testCreateLinkWithAppearance() throws IOException, DocumentException
+    {
+        Document doc = new Document();
+        PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(new File(RESULT_FOLDER, "custom-link.appearance.pdf")));
+        writer.setCompressionLevel(0);
+        doc.open();
+
+        BaseFont baseFont = BaseFont.createFont();
+        int fontSize = 15;
+        doc.add(new Paragraph("Hello", new Font(baseFont, fontSize)));
+        
+        PdfContentByte content = writer.getDirectContent();
+        
+        String text = "Test";
+        content.setFontAndSize(baseFont, fontSize);
+        content.beginText();
+        content.moveText(100, 500);
+        content.showText(text);
+        content.endText();
+        
+        Rectangle linkLocation = new Rectangle(95, 495 + baseFont.getDescentPoint(text, fontSize),
+                105 + baseFont.getWidthPoint(text, fontSize), 505 + baseFont.getAscentPoint(text, fontSize));
+
+        PdfAnnotation linkGreen = PdfAnnotation.createLink(writer, linkLocation, PdfName.HIGHLIGHT, "green" );
+        PdfTemplate appearance = PdfTemplate.createTemplate(writer, linkLocation.getWidth(), linkLocation.getHeight());
+        PdfGState state = new PdfGState();
+        //state.FillOpacity = .3f;
+        // IMPROVEMENT: Use blend mode Darken instead of transparency; you may also want to try Multiply.
+        state.setBlendMode(new PdfName("Darken"));
+        appearance.setGState(state);
+
+        appearance.setColorFill(BaseColor.GREEN);
+        appearance.rectangle(0, 0, linkLocation.getWidth(), linkLocation.getHeight());
+        appearance.fill();
+        linkGreen.setAppearance(PdfName.N, appearance);
+        writer.addAnnotation(linkGreen);
+
+        doc.open();
+        doc.close();
+    }
 }
