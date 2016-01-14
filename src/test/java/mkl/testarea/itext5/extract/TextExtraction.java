@@ -33,6 +33,40 @@ public class TextExtraction
     }
 
     /**
+     * <a href="http://itext.2136553.n4.nabble.com/iText-help-resources-tt4660980.html">
+     * [iText-questions] iText help resources?
+     * </a>
+     * <br/>
+     * <a href="http://itext.2136553.n4.nabble.com/attachment/4660980/0/testin.pdf">
+     * testin.pdf
+     * </a>
+     * <p>
+     * Indeed, the tables cannot be extracted. Further analysis shows that the text
+     * in the tables uses type 3 fonts with an ad-hoc encoding missing any mapping
+     * to Unicode.
+     * </p>
+     */
+    @Test
+    public void testTestin() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("testin.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "testin.%s.txt").toString());
+
+            System.out.println("\nText testin.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * <a href="http://stackoverflow.com/questions/32815291/itextsharp-cant-read-numbers-in-this-pdf">
      * iTextSharp can't read numbers in this PDF
      * </a>
