@@ -25,8 +25,8 @@ import com.itextpdf.text.pdf.parser.PdfTextExtractor;
  * <br/>
  * <a href="http://www.mass.gov/courts/docs/lawlib/300-399cmr/310cmr7.pdf">310cmr7.pdf</a>
  * <p>
- * This test tests the {@link TextLineFinder} and {@link HorizontalTextExtractionStrategy}
- * with the beginning of the OP's sample document..
+ * This test tests the {@link TextLineFinder} and {@link HorizontalTextExtractionStrategy} /
+ * {@link HorizontalTextExtractionStrategy2} with the beginning of the OP's sample document.
  * </p>
  * 
  * @author mkl
@@ -41,10 +41,24 @@ public class ExtractSuperAndSubInLine
         RESULT_FOLDER.mkdirs();
     }
 
+    /**
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText before 5.5.8-SNAPSHOT
+     * Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67 ("Refactor LocationTextExtractionStrategy...").
+     */
     @Test
     public void testExtract310cmr7() throws IOException, DocumentException, NoSuchFieldException, SecurityException
     {
-        extract("310cmr7.pdf", 1, 21);
+        extract("310cmr7.pdf", 1, 21, false);
+    }
+
+    /**
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText since 5.5.8-SNAPSHOT
+     * Commit 1ab350beae148be2a4bef5e663b3d67a004ff9f8 ("Make TextChunkLocation a Comparable<> class...").
+     */
+    @Test
+    public void testExtract310cmr7V2() throws IOException, DocumentException, NoSuchFieldException, SecurityException
+    {
+        extract("310cmr7.pdf", 1, 21, true);
     }
 
     @Test
@@ -96,10 +110,10 @@ public class ExtractSuperAndSubInLine
         }
     }
     
-    void extract(String resource, int startPage, int endPage) throws IOException, DocumentException, NoSuchFieldException, SecurityException
+    void extract(String resource, int startPage, int endPage, boolean isV2) throws IOException, DocumentException, NoSuchFieldException, SecurityException
     {
         String name = new File(resource).getName();
-        String target = String.format("%s-lines-%%s.txt", name);
+        String target = String.format(isV2 ? "%s-lines-v2-%%s.txt" : "%s-lines-%%s.txt", name);
         InputStream resourceStream = getClass().getResourceAsStream(resource);
         try
         {
@@ -110,8 +124,8 @@ public class ExtractSuperAndSubInLine
             {
                 System.out.printf("\n   Page %s\n", page);
 
-                String pageText = extract(reader, page);
-                Files.write(Paths.get(String.format(target, page)), pageText.getBytes("UTF8"));
+                String pageText = isV2 ? extractV2(reader, page) : extract(reader, page);
+                Files.write(new File(RESULT_FOLDER, String.format(target, page)).toPath(), pageText.getBytes("UTF8"));
                 System.out.println(pageText);
             }
         }
@@ -122,8 +136,22 @@ public class ExtractSuperAndSubInLine
         }
     }
 
+    /**
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText before 5.5.8-SNAPSHOT
+     * Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67 ("Refactor LocationTextExtractionStrategy...").
+     */
+    @SuppressWarnings("deprecation")
     String extract(PdfReader reader, int pageNo) throws IOException, NoSuchFieldException, SecurityException
     {
         return PdfTextExtractor.getTextFromPage(reader, pageNo, new HorizontalTextExtractionStrategy());
+    }
+
+    /**
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText since 5.5.8-SNAPSHOT
+     * Commit 1ab350beae148be2a4bef5e663b3d67a004ff9f8 ("Make TextChunkLocation a Comparable<> class...").
+     */
+    String extractV2(PdfReader reader, int pageNo) throws IOException, NoSuchFieldException, SecurityException
+    {
+        return PdfTextExtractor.getTextFromPage(reader, pageNo, new HorizontalTextExtractionStrategy2());
     }
 }

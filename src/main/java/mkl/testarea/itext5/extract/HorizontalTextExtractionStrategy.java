@@ -20,7 +20,9 @@ import com.itextpdf.text.pdf.parser.Vector;
  * This {@link TextExtractionStrategy} uses a {@link TextLineFinder} to identify
  * horizontal text lines and then uses these informations to sort the text chunks.
  * </p>
- * 
+ * @deprecated use {@link HorizontalTextExtractionStrategy2} with iText versions
+ *  after 5.5.8-SNAPSHOT, Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67
+ *  ("Refactor LocationTextExtractionStrategy...")
  * @author mkl
  */
 public class HorizontalTextExtractionStrategy extends LocationTextExtractionStrategy
@@ -46,7 +48,11 @@ public class HorizontalTextExtractionStrategy extends LocationTextExtractionStra
                 return super.compareTo(rhs);
         }
 
-        @Override
+// As of Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67 ("Refactor LocationTextExtractionStrategy...")
+// TextChunk changed; to keep this class compilable, drop references to a super method sameLine().
+// For use with newer iText versions, use HorizontalTextExtractionStrategy2 instead.
+//
+//        @Override
         public boolean sameLine(TextChunk as)
         {
             if (as instanceof HorizontalTextChunk)
@@ -54,8 +60,9 @@ public class HorizontalTextExtractionStrategy extends LocationTextExtractionStra
                 HorizontalTextChunk horAs = (HorizontalTextChunk) as;
                 return getLineNumber() == horAs.getLineNumber();
             }
-            else
-                return super.sameLine(as);
+//            else
+//                return super.sameLine(as);
+            return false;
         }
 
         public int getLineNumber()
