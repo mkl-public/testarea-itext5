@@ -5,7 +5,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class ExtractSuperAndSubInLine
     }
 
     /**
-     * Test with {@link HorizontalTextExtractionStrategy}, works for iText before 5.5.8-SNAPSHOT
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText before 5.5.9-SNAPSHOT
      * Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67 ("Refactor LocationTextExtractionStrategy...").
      */
     @Test
@@ -52,7 +51,7 @@ public class ExtractSuperAndSubInLine
     }
 
     /**
-     * Test with {@link HorizontalTextExtractionStrategy}, works for iText since 5.5.8-SNAPSHOT
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText since 5.5.9-SNAPSHOT
      * Commit 1ab350beae148be2a4bef5e663b3d67a004ff9f8 ("Make TextChunkLocation a Comparable<> class...").
      */
     @Test
@@ -137,7 +136,7 @@ public class ExtractSuperAndSubInLine
     }
 
     /**
-     * Test with {@link HorizontalTextExtractionStrategy}, works for iText before 5.5.8-SNAPSHOT
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText before 5.5.9-SNAPSHOT
      * Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67 ("Refactor LocationTextExtractionStrategy...").
      */
     @SuppressWarnings("deprecation")
@@ -147,7 +146,7 @@ public class ExtractSuperAndSubInLine
     }
 
     /**
-     * Test with {@link HorizontalTextExtractionStrategy}, works for iText since 5.5.8-SNAPSHOT
+     * Test with {@link HorizontalTextExtractionStrategy}, works for iText since 5.5.9-SNAPSHOT
      * Commit 1ab350beae148be2a4bef5e663b3d67a004ff9f8 ("Make TextChunkLocation a Comparable<> class...").
      */
     String extractV2(PdfReader reader, int pageNo) throws IOException, NoSuchFieldException, SecurityException

@@ -20,7 +20,7 @@ import com.itextpdf.text.pdf.parser.Vector;
  * </p>
  * <p>
  * In Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67 ("Refactor LocationTextExtractionStrategy...")
- * during 5.5.8-SNAPSHOT the internal representation of the location of a text chunk has been abstracted
+ * during 5.5.9-SNAPSHOT the internal representation of the location of a text chunk has been abstracted
  * to allow for changes here without reflection being required. This version is adapted to this
  * abstraction; for older iText versions, cf. {@link HorizontalTextExtractionStrategy}.
  * </p>

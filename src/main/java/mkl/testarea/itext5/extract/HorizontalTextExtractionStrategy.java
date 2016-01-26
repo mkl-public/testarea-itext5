@@ -21,7 +21,7 @@ import com.itextpdf.text.pdf.parser.Vector;
  * horizontal text lines and then uses these informations to sort the text chunks.
  * </p>
  * @deprecated use {@link HorizontalTextExtractionStrategy2} with iText versions
- *  after 5.5.8-SNAPSHOT, Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67
+ *  after 5.5.9-SNAPSHOT, Commit 53526e4854fcb80c86cbc2e113f7a07401dc9a67
  *  ("Refactor LocationTextExtractionStrategy...")
  * @author mkl
  */
