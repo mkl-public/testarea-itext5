@@ -1,6 +1,3 @@
-/**
- * 
- */
 package mkl.testarea.itext5.copy;
 
 import java.io.ByteArrayOutputStream;
@@ -57,7 +54,7 @@ public class StampHeader
      * You can fix this by either
      * <ul>
      * <li>using a smaller font, e.g. 6, or
-     * <li>using a heigher cell, e.g. 11, or
+     * <li>using a higher cell, e.g. 11, or
      * <li>using a smaller padding, e.g. 1, see below-
      * </p>
      */
