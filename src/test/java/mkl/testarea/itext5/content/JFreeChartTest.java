@@ -33,7 +33,7 @@ import com.itextpdf.text.pdf.PdfWriter;
  * </p>
  * <p>
  * It can be kept smaller by either fixing the cell height or wrapping the image into a {@link Chunk}.
- * Neither option always has a good result.
+ * Neither option always has a good result. After experimenting the OP chose the latter one.
  * </p>
  * 
  * @author Rasika Kulkarni
@@ -132,7 +132,12 @@ public class JFreeChartTest
             PdfPCell cellJ = new PdfPCell(new Phrase("J"));
             cellJ.setColspan(2);
             cellJ.setRowspan(3);
-            cellJ.setImage(chartImage);
+            //instead of
+            //  cellJ.setImage(chartImage);
+            //the OP now uses
+            Chunk chunk = new Chunk(chartImage, 20, -50);
+            cellJ.addElement(chunk);
+            //presumably with different contents of the other cells at hand
             table.addCell(cellJ);
 
             PdfPCell cellK = new PdfPCell(new Phrase("K"));
