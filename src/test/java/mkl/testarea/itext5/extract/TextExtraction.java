@@ -15,6 +15,7 @@ import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
+import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
 
 /**
@@ -108,7 +109,7 @@ public class TextExtraction
      * </p>
      */
     @Test
-    public void testA00031() throws IOException, DocumentException
+    public void testA00031() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("A00031.PDF");
         try
@@ -133,7 +134,7 @@ public class TextExtraction
      * http://www.european-athletics.org/mm/Document/EventsMeetings/General/01/27/52/10/EICH-FinalEntriesforwebsite_Neutral.pdf
      */
     @Test
-    public void testEichFinalEntriesForWebsiteNeutral() throws IOException, DocumentException
+    public void testEichFinalEntriesForWebsiteNeutral() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("EICH-FinalEntriesforwebsite_Neutral.pdf");
         try
@@ -161,7 +162,7 @@ public class TextExtraction
      * http://www.pse.com.ph/stockMarket/marketInfo-marketActivity.html?tab=4
      */
     @Test
-    public void testStockQuotes_03232015() throws IOException, DocumentException
+    public void testStockQuotes_03232015() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("stockQuotes_03232015.pdf");
         try
@@ -189,7 +190,7 @@ public class TextExtraction
      * http://www.pse.com.ph/stockMarket/marketInfo-marketActivity.html?tab=4
      */
     @Test
-    public void testStockQuotes_03232015_Incomplete() throws IOException, DocumentException
+    public void testStockQuotes_03232015_Incomplete() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("stockQuotes_03232015-incomplete.pdf");
         try
@@ -222,7 +223,7 @@ public class TextExtraction
      * Indeed, Information in the PDF are not good for immediate text extraction.
      */
     @Test
-    public void testBolletta_Anonima() throws IOException, DocumentException
+    public void testBolletta_Anonima() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("Bolletta_Anonima.pdf");
         try
@@ -256,7 +257,7 @@ public class TextExtraction
      * Indeed, Information in the PDF are not good for immediate text extraction.
      */
     @Test
-    public void testTestLukasRr() throws IOException, DocumentException
+    public void testTestLukasRr() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("testLukasRr.pdf");
         try
@@ -297,7 +298,7 @@ public class TextExtraction
      * @throws DocumentException
      */
     @Test
-    public void testUnderstandingTheHighPhotocatalyticActivity() throws IOException, DocumentException
+    public void testUnderstandingTheHighPhotocatalyticActivity() throws Exception
     {
         InputStream resourceStream = getClass().getResourceAsStream("Understanding the High Photocatalytic Activity of (B, Ag)-Codopeda312205c_si_001.pdf");
         try
@@ -351,13 +352,59 @@ public class TextExtraction
         }
     }
 
-    String extractAndStore(PdfReader reader, String format) throws IOException
+    /**
+     * <a href="http://stackoverflow.com/questions/35344982/itext-extracted-text-from-pdf-file-using-locationtextextractionstrategy-is-in-w">
+     * iText: Extracted text from pdf file using LocationTextExtractionStrategy is in wrong order
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/kl2s6038u51gx2q/location_text_extraction_test.pdf?dl=0">
+     * location_text_extraction_test.pdf
+     * </a>
+     * <p>
+     * Indeed, the {@link LocationTextExtractionStrategy} returns the headers in the wrong order.
+     * This is due to slightly different y coordinates of them.
+     * </p>
+     * <p>
+     * The {@link HorizontalTextExtractionStrategy2} returns the headers and actually the whole table
+     * correctly. Unfortunately it fails where there are overlapping lines in side-by-side columns,
+     * in this case e.g. for the invoice recipient address.
+     * </p>
+     */
+    @Test
+    public void testLocation_text_extraction_test() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("location_text_extraction_test.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "location_text_extraction_test.%s.txt").toString());
+            String horizontalContent = extractAndStore(reader, new File(RESULT_FOLDER, "location_text_extraction_test.%s.txt").toString(), HorizontalTextExtractionStrategy2.class);
+
+            System.out.println("\nText (location strategy) location_text_extraction_test.pdf \n************************");
+            System.out.println(content);
+            System.out.println("\nText (horizontal strategy) location_text_extraction_test.pdf \n************************");
+            System.out.println(horizontalContent);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    String extractAndStore(PdfReader reader, String format) throws Exception
+    {
+        return extractAndStore(reader, format, LocationTextExtractionStrategy.class);
+    }
+
+    <E extends TextExtractionStrategy> String extractAndStore(PdfReader reader, String format, Class<E> strategyClass) throws Exception
     {
         StringBuilder builder = new StringBuilder();
 
         for (int page = 1; page <= reader.getNumberOfPages(); page++)
         {
-            String pageText = extract(reader, page);
+            String pageText = extract(reader, page, strategyClass.getConstructor().newInstance());
             Files.write(Paths.get(String.format(format, page)), pageText.getBytes("UTF8"));
 
             if (page > 1)
@@ -368,9 +415,9 @@ public class TextExtraction
         return builder.toString();
     }
 
-    String extract(PdfReader reader, int pageNo) throws IOException
+    String extract(PdfReader reader, int pageNo, TextExtractionStrategy strategy) throws IOException
     {
-        return PdfTextExtractor.getTextFromPage(reader, pageNo, new LocationTextExtractionStrategy());
+        return PdfTextExtractor.getTextFromPage(reader, pageNo, strategy);
     }
 
     String extractAndStoreSimple(PdfReader reader, String format) throws IOException
