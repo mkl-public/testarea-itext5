@@ -1,8 +1,6 @@
 // $Id$
 package mkl.testarea.itext5.content;
 
-import static org.junit.Assert.*;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
