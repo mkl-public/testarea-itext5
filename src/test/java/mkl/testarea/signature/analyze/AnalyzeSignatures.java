@@ -49,4 +49,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/35613203/pdf-signature-ltv-crl-alternative">
+     * PDF Signature - LTV - CRL alternative?
+     * </a>
+     * <br/>
+     * <a href="http://we.tl/dBFE114SAd">
+     * test_signed.pdf
+     * </a>,
+     * the signature being extracted as "test_signed.pdf.Signature1.raw".
+     * 
+     * <p>
+     * The signature does not conform to any LTV profile, merely to T-Level, i.e. it is timestamped.
+     * </p>
+     */
+    @Test
+    public void testTonnySignature() throws IOException, CMSException, TSPException, OperatorCreationException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("test_signed.pdf.Signature1.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
