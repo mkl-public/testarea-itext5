@@ -71,6 +71,8 @@ public class VerifySignature
             }
         }
 
+        System.out.println();
+
         Field rsaDataField = PdfPKCS7.class.getDeclaredField("RSAdata");
         rsaDataField.setAccessible(true);
         
@@ -84,9 +86,15 @@ public class VerifySignature
                System.out.println("Signature name: " + name);
                System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
                PdfPKCS7 pk = acroFields.verifySignature(name);
-               rsaDataField.set(pk, null);
                System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
-               System.out.println("Document verifies (RSAdata patched): " + pk.verify());
+
+               Object rsaDataFieldContent = rsaDataField.get(pk);
+               if (rsaDataFieldContent != null && ((byte[])rsaDataFieldContent).length == 0)
+               {
+                   System.out.println("Found zero-length encapsulated content: ignoring");
+                   rsaDataField.set(pk, null);
+               }
+               System.out.println("Document verifies: " + pk.verify());
             }
         }
     }
