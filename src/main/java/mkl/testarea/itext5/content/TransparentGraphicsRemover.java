@@ -123,6 +123,6 @@ public class TransparentGraphicsRemover extends PdfContentStreamEditor
         operatorMapping.put("B", new PdfLiteral[]{ _B, _f, _S, _n });
         operatorMapping.put("B*", new PdfLiteral[]{ _BStar, _fStar, _S, _n });
         operatorMapping.put("b", new PdfLiteral[]{ _b, _f, _s, _n });
-        operatorMapping.put("b*", new PdfLiteral[]{ _bStar, _fStar, _S, _n });
+        operatorMapping.put("b*", new PdfLiteral[]{ _bStar, _fStar, _s, _n });
     }
 }
