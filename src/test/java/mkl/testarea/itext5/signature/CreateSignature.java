@@ -20,6 +20,7 @@ import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.security.BouncyCastleDigest;
+import com.itextpdf.text.pdf.security.DigestAlgorithms;
 import com.itextpdf.text.pdf.security.ExternalDigest;
 import com.itextpdf.text.pdf.security.ExternalSignature;
 import com.itextpdf.text.pdf.security.MakeSignature;
@@ -368,5 +369,41 @@ public class CreateSignature
         ExternalDigest digest = new BouncyCastleDigest();
         MakeSignature.signDetached(appearance, digest, pks, chain,
             null, null, null, 0, subfilter);
+    }
+    
+    /**
+     * <a href="http://stackoverflow.com/questions/36589698/error-while-digitally-signing-a-pdf">
+     * Error while digitally signing a PDF
+     * </a>
+     * <p>
+     * Tried to reproduce the OP's issue with my own test PDF and key. But it worked alright.
+     * </p>
+     */
+    @Test
+    public void signLikeJackSparrow() throws GeneralSecurityException, IOException, DocumentException
+    {
+        final String SRC      = "src/test/resources/mkl/testarea/itext5/extract/test.pdf";
+        final String DEST     = new File(RESULT_FOLDER, "test-JackSparrow-%s.pdf").getPath();
+
+        C2_01_SignHelloWorld_sign(SRC, String.format(DEST, 1), chain, pk, DigestAlgorithms.SHA256, "BC", CryptoStandard.CMS, "Signed for Testing", "Universe");
+        C2_01_SignHelloWorld_sign(SRC, String.format(DEST, 2), chain, pk, DigestAlgorithms.SHA512, "BC", CryptoStandard.CMS, "Test 2", "Universe");
+        C2_01_SignHelloWorld_sign(SRC, String.format(DEST, 3), chain, pk, DigestAlgorithms.SHA256, "BC", CryptoStandard.CADES, "Test 3", "Universe");
+    }
+    
+    public void C2_01_SignHelloWorld_sign(String src, String dest, Certificate[] chain, PrivateKey pk, String digestAlgorithm, String provider, CryptoStandard subfilter, String reason, String location)
+            throws GeneralSecurityException, IOException, DocumentException {
+        // Creating the reader and the stamper
+        PdfReader reader = new PdfReader(src);
+        FileOutputStream os = new FileOutputStream(dest);
+        PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0');
+        // Creating the appearance
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setReason(reason);
+        appearance.setLocation(location);
+        appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+        // Creating the signature
+        ExternalDigest digest = new BouncyCastleDigest();
+        ExternalSignature signature = new PrivateKeySignature(pk, digestAlgorithm, provider);
+        MakeSignature.signDetached(appearance, digest, signature, chain, null, null, null, 0, subfilter);
     }
 }
