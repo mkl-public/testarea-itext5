@@ -393,6 +393,56 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/37307289/text-from-pdf-parsing-differently-using-itext">
+     * Text from PDF parsing differently using iText
+     * </a>
+     * <br/>
+     * <a href="https://github.com/Baddy247/Shared-Files/raw/master/test%20pdf.pdf">
+     * test pdf.pdf
+     * </a>
+     * <p>
+     * While the rows look like they are they are at a constant level each, they actually are not.
+     * The 'XXX...:' and 'TOTAL :' parts are at y coordinates 469.45, 457.95, and 446.45 while the
+     * '#..', '1', and '2' parts are at y coordinates 468.65, 457.15, and 445.65.
+     * </p>
+     * <p>
+     * To consider horizontal text to be on the same line, iText text extraction using the default
+     * text extraction strategy ({@link LocationTextExtractionStrategy}) requires the y coordinates
+     * to be the same after casting to int. (Actually this is somewhat simplified, for the whole
+     * picture look at {@link LocationTextExtractionStrategy.TextChunkLocationDefaultImp}).
+     * </p>
+     * <p>
+     * In the case at hand this only is the case for the middle row.
+     * </p>
+     * <p>
+     * The {@link HorizontalTextExtractionStrategy2} on the other hand recognized each row as a
+     * single line.
+     * </p>
+     */
+    @Test
+    public void testTest_pdf() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("test pdf.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "test pdf.%s.txt").toString());
+            String horizontalContent = extractAndStore(reader, new File(RESULT_FOLDER, "test pdf.HOR.%s.txt").toString(), HorizontalTextExtractionStrategy2.class);
+
+            System.out.println("\nText (location strategy) test pdf.pdf \n************************");
+            System.out.println(content);
+            System.out.println("\nText (horizontal strategy) test pdf.pdf \n************************");
+            System.out.println(horizontalContent);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format) throws Exception
     {
         return extractAndStore(reader, format, LocationTextExtractionStrategy.class);
