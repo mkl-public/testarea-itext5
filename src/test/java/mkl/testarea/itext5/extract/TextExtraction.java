@@ -12,8 +12,10 @@ import org.junit.Test;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.ExceptionConverter;
 import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.parser.FilteredTextRenderListener;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
+import com.itextpdf.text.pdf.parser.RenderFilter;
 import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextExtractionStrategy;
 import com.itextpdf.text.pdf.parser.TextRenderInfo;
@@ -318,6 +320,49 @@ public class TextExtraction
     }
 
     /**
+     * <a href="http://stackoverflow.com/questions/37262087/avoid-reading-hidden-text-from-pdf">
+     * Avoid reading hidden text from PDF
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B-JlUfbplwmhUjN3QWExeUVNclU/view?usp=sharing">
+     * demo.pdf
+     * </a>
+     * 
+     * <p>
+     * The extra, invisible text turns out to be drawn in rendering mode 3 at the origin.
+     * Filtering by text rendering mode gets rid of it.
+     * </p>
+     */
+    @Test
+    public void testDemo() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("demo.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "demo.%s.txt").toString());
+            RenderFilter modeFilter = new RenderFilter()
+            {
+                public boolean allowText(TextRenderInfo renderInfo){
+                    return renderInfo.getTextRenderMode() != 3;
+                }
+            };
+            String filteredContent = extractAndStore(reader, new File(RESULT_FOLDER, "demo.filtered.%s.txt").toString(), modeFilter);
+
+            System.out.println("\nText demo.pdf\n************************");
+            System.out.println(content);
+            System.out.println("\n*filtered");
+            System.out.println(filteredContent);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * <a href="http://stackoverflow.com/questions/32014589/how-to-read-data-from-table-structured-pdf-using-itextsharp">
      * How to read data from table-structured PDF using itextsharp?
      * </a>
@@ -443,18 +488,23 @@ public class TextExtraction
         }
     }
 
-    String extractAndStore(PdfReader reader, String format) throws Exception
+    String extractAndStore(PdfReader reader, String format, RenderFilter... filters) throws Exception
     {
-        return extractAndStore(reader, format, LocationTextExtractionStrategy.class);
+        return extractAndStore(reader, format, LocationTextExtractionStrategy.class, filters);
     }
 
-    <E extends TextExtractionStrategy> String extractAndStore(PdfReader reader, String format, Class<E> strategyClass) throws Exception
+    <E extends TextExtractionStrategy> String extractAndStore(PdfReader reader, String format, Class<E> strategyClass, RenderFilter... filters) throws Exception
     {
         StringBuilder builder = new StringBuilder();
 
         for (int page = 1; page <= reader.getNumberOfPages(); page++)
         {
-            String pageText = extract(reader, page, strategyClass.getConstructor().newInstance());
+            TextExtractionStrategy strategy = strategyClass.getConstructor().newInstance();
+            if (filters != null && filters.length > 0)
+            {
+                strategy = new FilteredTextRenderListener(strategy, filters);
+            }
+            String pageText = extract(reader, page, strategy);
             Files.write(Paths.get(String.format(format, page)), pageText.getBytes("UTF8"));
 
             if (page > 1)
