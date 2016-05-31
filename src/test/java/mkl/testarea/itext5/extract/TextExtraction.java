@@ -131,6 +131,44 @@ public class TextExtraction
     }
 
     /**
+     * <a href="http://stackoverflow.com/questions/37439613/itextpdf-insert-space-beetwen-7-and-dot-after-extract-text">
+     * itextpdf insert space beetwen 7 and dot after extract text
+     * </a>
+     * <br/>
+     * <a href="http://185.49.12.119/~pogdan/7spacedot/monitor_2016_99.pdf">
+     * monitor_2016_99.pdf
+     * </a>
+     * <p>
+     * iText inserts spaces whenever there is a gap between two consecutive text chunks
+     * which is larger than a certain amount, or if two consecutive text chunks overlap.
+     * It does so to signal that the chunks do not follow each other in a normal way.
+     * </p>
+     * <p>
+     * In case of this document a dot following a seven often is moved left as far as
+     * possible without touching the seven so that the character bounding boxes overlap.
+     * </p>
+     */
+    @Test
+    public void testMonitor_2016_99() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("monitor_2016_99.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "monitor_2016_99.%s.txt").toString());
+
+            System.out.println("\nText monitor_2016_99.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * Problems with extracting table from PDF
      * http://stackoverflow.com/questions/28828021/problems-with-extracting-table-from-pdf
      * http://www.european-athletics.org/mm/Document/EventsMeetings/General/01/27/52/10/EICH-FinalEntriesforwebsite_Neutral.pdf
