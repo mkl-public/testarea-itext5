@@ -6,6 +6,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -195,6 +197,79 @@ public class AddField
             } catch (Exception e) {
                 throw new ExceptionConverter(e);
             }
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/32445174/missing-deselected-display-items-at-the-beginning-of-the-list-box-itextsharp">
+     * Missing deselected display items at the beginning of the list box (iTextSharp)
+     * </a>
+     * <br/>
+     * <a href="http://stackoverflow.com/questions/37587703/deselected-display-items-missing-at-the-beginning-of-the-list-box-itextsharp">
+     * Deselected display items missing at the beginning of the list box (iTextSharp)
+     * </a>
+     * 
+     * <p>
+     * This is the equivalent code to the OP's VB .Net code.
+     * </p>
+     * <p>
+     * Indeed, "One" is invisible at first. As a fix, set the VisibleTopChoice.
+     * </p>
+     */
+    @Test
+    public void testAddLikeNickK() throws IOException, DocumentException
+    {
+        File myFile = new File(RESULT_FOLDER, "test-multiSelectBox.pdf");
+        
+        Rectangle newRect = new Rectangle(231.67f, 108.0f, 395.67f, 197.0f);
+        String newFldName = "ListBox1";
+        int pg = 1;
+
+        try (   InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                OutputStream output = new FileOutputStream(myFile)  )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(pdfReader, output);
+            
+            TextField txtField = new TextField(stamper.getWriter(), newRect, newFldName);
+            txtField.setTextColor(BaseColor.BLACK);
+            txtField.setBackgroundColor(BaseColor.WHITE);
+            txtField.setBorderColor(BaseColor.BLACK);
+            txtField.setFieldName(newFldName);
+            txtField.setAlignment(0); //LEFT
+            txtField.setBorderStyle(0); //SOLID
+            txtField.setBorderWidth(1.0F); //THIN
+            txtField.setVisibility(TextField.VISIBLE);
+            txtField.setRotation(0); //None
+            txtField.setBox(newRect);
+            //PdfArray opt = new PdfArray();
+            List<String> ListBox_ItemDisplay = new ArrayList<String>();
+            ListBox_ItemDisplay.add("One");
+            ListBox_ItemDisplay.add("Two");
+            ListBox_ItemDisplay.add("Three");
+            ListBox_ItemDisplay.add("Four");
+            ListBox_ItemDisplay.add("Five");
+            List<String> ListBox_ItemValue = new ArrayList<String>();
+            ListBox_ItemValue.add("1X");
+            ListBox_ItemValue.add("2X");
+            ListBox_ItemValue.add("3X");
+            ListBox_ItemValue.add("4X");
+            ListBox_ItemValue.add("5X");
+            txtField.setOptions(txtField.getOptions() | TextField.MULTISELECT);
+            ArrayList<Integer> selIndex = new ArrayList<Integer>();
+            //List<String> selValues = new ArrayList<String>();
+            selIndex.add(1); // SELECT #1 (index)
+            selIndex.add(3); // SELECT #3 (index)
+            txtField.setChoices(ListBox_ItemDisplay.toArray(new String[0]));
+            txtField.setChoiceExports(ListBox_ItemValue.toArray(new String[0]));
+            txtField.setChoiceSelections(selIndex);
+            // vvv--- Add this line as a fix
+            txtField.setVisibleTopChoice(0);
+            // ^^^--- Add this line as a fix
+            PdfFormField listField = txtField.getListField();
+            stamper.addAnnotation(listField, pg);
+
+            stamper.close();
         }
     }
 }
