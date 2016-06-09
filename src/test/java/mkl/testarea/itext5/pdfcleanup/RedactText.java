@@ -1,6 +1,7 @@
 package mkl.testarea.itext5.pdfcleanup;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,8 +15,12 @@ import org.junit.Test;
 import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.PdfAnnotation;
+import com.itextpdf.text.pdf.PdfArray;
+import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.PdfString;
 import com.itextpdf.text.pdf.pdfcleanup.PdfCleanUpLocation;
 import com.itextpdf.text.pdf.pdfcleanup.PdfCleanUpProcessor;
 
@@ -108,6 +113,69 @@ public class RedactText
 
             stamper.close();
             reader.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/37713112/attempt-to-apply-redactions-results-in-exception">
+     * Attempt to apply redactions results in exception
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0Bz0Wye-k7GsZUXdKbWtMTUNpcXc/view?usp=sharing">
+     * 20150325101924-2102000595-SessionReport.pdf
+     * </a>
+     * <p>
+     * This corresponds to the iTextSharp/C# code by the OP having fixed a first issue, the
+     * use of annots added in the same PdfStamper sesion.
+     * </p>
+     * <p>
+     * In Java no more exception occurs but in C# one does. This is due to iText using a HashMap
+     * and iTextSharp using a Dictionary as a member of the PdfCleanUpProcessor to which
+     * annotation rectangles are added by their annotations index in their respective page
+     * annotations array (which is a logical error on both sides). HashMaps allow overwriting
+     * entries, Dictionaries don't. Thus, iTextSharp hickups and iText does not.
+     * </p>
+     */
+    @Test
+    public void testRedact20150325101924_2102000595_SessionReport() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("20150325101924-2102000595-SessionReport.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "20150325101924-2102000595-SessionReport-annotated.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+
+            PdfAnnotation pdfAnot1 = new PdfAnnotation(stamper.getWriter(), new Rectangle(165f, 685f, 320f, 702f));
+            pdfAnot1.setTitle("First Page");
+            pdfAnot1.put(PdfName.SUBTYPE, PdfName.REDACT);
+            pdfAnot1.put(PdfName.IC, new PdfArray(new float[] { 0f, 0f, 0f }));
+            pdfAnot1.put(PdfName.OC, new PdfArray(new float[] { 1f, 0f, 0f })); // red outline
+            pdfAnot1.put(PdfName.QUADPOINTS, new PdfArray());
+            stamper.addAnnotation(pdfAnot1, 1);
+            for (int i = 1; i <= reader.getNumberOfPages(); i++)
+            {
+                PdfAnnotation pdfAnot2 = new PdfAnnotation(stamper.getWriter(), new Rectangle(220f, 752f, 420f, 768f));
+                pdfAnot2.setTitle("Header");
+                pdfAnot2.put(PdfName.SUBTYPE, PdfName.REDACT);
+                pdfAnot2.put(PdfName.IC, new PdfArray(new float[] { 0f, 0f, 0f }));
+                pdfAnot2.put(PdfName.OC, new PdfArray(new float[] { 1f, 0f, 0f })); // red outline
+                pdfAnot2.put(PdfName.QUADPOINTS, new PdfArray());
+                stamper.addAnnotation(pdfAnot2, i);
+            }
+
+            stamper.close();
+        }
+
+        try (   InputStream resource = new FileInputStream(new File(OUTPUTDIR, "20150325101924-2102000595-SessionReport-annotated.pdf"));
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "20150325101924-2102000595-SessionReport-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+
+            PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(stamper);
+            cleaner.cleanUp();
+            
+            stamper.close();
         }
     }
 }
