@@ -98,4 +98,38 @@ public class VerifySignature
             }
         }
     }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/37726215/why-does-my-signature-revision-number-increment-by-2-in-itext-after-detached-s">
+     * Why does my signature revision number increment by 2 (in itext) after detached signing?
+     * </a>
+     * <br/>
+     * <a href="https://onedrive.live.com/redir?resid=2F03BFDA84B77A41!113&authkey=!ABPGZ7pxuxoE8A0&ithint=file%2Cpdf">
+     * signedoutput.pdf
+     * </a>
+     * <p>
+     * The issue cannot be reproduced. In particular the PDF contains only a single revision.
+     * </p>
+     */
+    @Test
+    public void testVerifySignedOutput() throws IOException, GeneralSecurityException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("signedoutput.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource);
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
 }
