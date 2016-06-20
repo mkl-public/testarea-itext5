@@ -36,6 +36,39 @@ public class TextExtraction
     }
 
     /**
+     * <a href="http://stackoverflow.com/questions/37919301/itext-textextracting-example-not-working">
+     * itext: Textextracting example not working
+     * </a>
+     * <br/>
+     * <a href="http://s000.tinyupload.com/index.php?file_id=04085076377229572360">
+     * HTR_Reichsgericht.pdf
+     * </a>
+     * <p>
+     * The issue cannot be reproduced. Analyzing the given stacktrace one is led to assume the
+     * OP uses the number of a non-existing page.
+     * </p>
+     */
+    @Test
+    public void testHTR_Reichsgericht() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("HTR_Reichsgericht.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "HTR_Reichsgericht.%s.txt").toString());
+
+            System.out.println("\nText HTR_Reichsgericht.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * <a href="http://itext.2136553.n4.nabble.com/iText-help-resources-tt4660980.html">
      * [iText-questions] iText help resources?
      * </a>
