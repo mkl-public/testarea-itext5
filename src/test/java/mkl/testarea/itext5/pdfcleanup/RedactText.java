@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.BeforeClass;
@@ -20,12 +21,11 @@ import com.itextpdf.text.pdf.PdfArray;
 import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
-import com.itextpdf.text.pdf.PdfString;
 import com.itextpdf.text.pdf.pdfcleanup.PdfCleanUpLocation;
 import com.itextpdf.text.pdf.pdfcleanup.PdfCleanUpProcessor;
 
 /**
- * @author mklink
+ * @author mkl
  *
  */
 public class RedactText
@@ -177,5 +177,74 @@ public class RedactText
             
             stamper.close();
         }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/38053804/itextsharp-cropping-pdf-with-images-throws-exception">
+     * iTextSharp - Cropping PDF with images throws exception
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/i76q8j1n5b0kdtv/1.pdf?dl=0">
+     * 1.pdf
+     * </a>, as Narek-1.pdf here
+     * <p>
+     * Indeed, there is an exception reading this image from PDF.
+     * </p>
+     */
+    @Test
+    public void testRedactNarek_1() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("Narek-1.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "Narek-1-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+            redactLikeNarek(stamper);
+            stamper.close();
+        }
+    }
+    
+    /**
+     * <a href="http://stackoverflow.com/questions/38053804/itextsharp-cropping-pdf-with-images-throws-exception">
+     * iTextSharp - Cropping PDF with images throws exception
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/i8bg76033oj5bug/2.pdf?dl=0">
+     * 2.pdf
+     * </a>, as Narek-2.pdf here
+     * <p>
+     * The issue cannot be reproduced with Java. It can be reproduced with C#, though.
+     * </p>
+     * <p>
+     * Nonetheless, even here the image is not properly redacted, merely covered.
+     * </p>
+     */
+    @Test
+    public void testRedactNarek_2() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("Narek-2.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "Narek-2-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+            redactLikeNarek(stamper);
+            stamper.close();
+        }
+    }
+    
+    /**
+     * <a href="http://stackoverflow.com/questions/38053804/itextsharp-cropping-pdf-with-images-throws-exception">
+     * iTextSharp - Cropping PDF with images throws exception
+     * </a>
+     * <p>
+     * The OP's redaction code ported to Java.
+     * </p>
+     */
+    void redactLikeNarek(PdfStamper stamper) throws IOException, DocumentException
+    {
+        Rectangle redactionRectangle = new Rectangle(74, 503, 385, 761);
+        List<PdfCleanUpLocation> cleanUpLocations = Arrays.asList(new PdfCleanUpLocation(1, redactionRectangle, BaseColor.WHITE));
+        PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);
+        cleaner.cleanUp();
     }
 }
