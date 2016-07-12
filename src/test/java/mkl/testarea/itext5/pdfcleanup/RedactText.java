@@ -247,4 +247,42 @@ public class RedactText
         PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);
         cleaner.cleanUp();
     }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/38278816/remove-header-of-a-pdf-using-itext-pdfcleanupprocessor-does-not-work">
+     * Remove header of a pdf using iText PdfCleanUpProcessor does not work
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/4u8vupjqc4st3ib/love.pdf?dl=0">
+     * love.pdf
+     * </a>
+     * <p>
+     * Cannot reproduce, I get a <code>org.apache.commons.imaging.ImageReadException: Invalid marker found in entropy data</code>.
+     * </p>
+     */
+    @Test
+    public void testRedactLikeShiranSEkanayake() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("love.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "love-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+            List<PdfCleanUpLocation> cleanUpLocations = new ArrayList<PdfCleanUpLocation>();
+
+            for(int i=1; i<=reader.getNumberOfPages(); i++)
+            {
+                    //System.out.println(i);
+                    Rectangle mediabox = reader.getPageSize(i); 
+                    cleanUpLocations.add(new PdfCleanUpLocation(i, new Rectangle(0,800,1000,1000)));
+
+
+            }
+            PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);
+            cleaner.cleanUp();
+            stamper.close();
+            reader.close(); 
+        }
+
+    }
 }
