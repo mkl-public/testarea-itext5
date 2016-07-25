@@ -6,13 +6,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.pdf.PdfLiteral;
+import com.itextpdf.text.pdf.PdfObject;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.parser.PdfContentStreamProcessor;
 
 /**
  * <a href="http://stackoverflow.com/questions/35526822/removing-watermark-from-pdf-itextsharp">
@@ -136,4 +141,109 @@ public class EditPageContent
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/38498431/how-to-remove-filtered-content-from-a-pdf-with-itext">
+     * How to remove filtered content from a PDF with iText
+     * </a>
+     * <br/>
+     * <a href="https://1drv.ms/b/s!AmNST-TRoPSemi2k0UnGFsjQM1Yt">
+     * document.pdf
+     * </a>
+     * <p>
+     * This test shows how to remove text matching the filter condition given
+     * by the OP, i.e. any text drawn using a font whose name ends with "BoldMT".
+     * </p>
+     * <p>
+     * This works well, too good actually, as some table headers also use a
+     * "BoldMT" font and, therefore, also vanish. As an alternative look at
+     * {@link #testRemoveBigTextDocument()} which simply uses the font size
+     * as filter condition.
+     * </p>
+     */
+    @Test
+    public void testRemoveBoldMTTextDocument() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("document.pdf");
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "document-noBoldMTText.pdf")))
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper pdfStamper = new PdfStamper(pdfReader, result);
+            PdfContentStreamEditor editor = new PdfContentStreamEditor()
+            {
+                @Override
+                protected void write(PdfContentStreamProcessor processor, PdfLiteral operator, List<PdfObject> operands) throws IOException
+                {
+                    String operatorString = operator.toString();
+
+                    if (TEXT_SHOWING_OPERATORS.contains(operatorString))
+                    {
+                        if (gs().getFont().getPostscriptFontName().endsWith("BoldMT"))
+                            return;
+                    }
+                    
+                    super.write(processor, operator, operands);
+                }
+
+                final List<String> TEXT_SHOWING_OPERATORS = Arrays.asList("Tj", "'", "\"", "TJ");
+            };
+
+            for (int i = 1; i <= pdfReader.getNumberOfPages(); i++)
+            {
+                editor.editPage(pdfStamper, i);
+            }
+            
+            pdfStamper.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/38498431/how-to-remove-filtered-content-from-a-pdf-with-itext">
+     * How to remove filtered content from a PDF with iText
+     * </a>
+     * <br/>
+     * <a href="https://1drv.ms/b/s!AmNST-TRoPSemi2k0UnGFsjQM1Yt">
+     * document.pdf
+     * </a>
+     * <p>
+     * This test shows how to remove text filtered by font size. The filter
+     * condition given by the OP, i.e. any text drawn using a font whose
+     * name ends with "BoldMT", had turned out to match more often than
+     * desired, cf. {@link #testRemoveBoldMTTextDocument()}.
+     * </p>
+     */
+    @Test
+    public void testRemoveBigTextDocument() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("document.pdf");
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "document-noBigText.pdf")))
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper pdfStamper = new PdfStamper(pdfReader, result);
+            PdfContentStreamEditor editor = new PdfContentStreamEditor()
+            {
+                @Override
+                protected void write(PdfContentStreamProcessor processor, PdfLiteral operator, List<PdfObject> operands) throws IOException
+                {
+                    String operatorString = operator.toString();
+
+                    if (TEXT_SHOWING_OPERATORS.contains(operatorString))
+                    {
+                        if (gs().getFontSize() > 100)
+                            return;
+                    }
+                    
+                    super.write(processor, operator, operands);
+                }
+
+                final List<String> TEXT_SHOWING_OPERATORS = Arrays.asList("Tj", "'", "\"", "TJ");
+            };
+
+            for (int i = 1; i <= pdfReader.getNumberOfPages(); i++)
+            {
+                editor.editPage(pdfStamper, i);
+            }
+            
+            pdfStamper.close();
+        }
+    }
 }
