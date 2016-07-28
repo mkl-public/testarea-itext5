@@ -296,6 +296,9 @@ public class RedactText
      * bounding box merely minutely intersects the redaction area. While not desired by
      * the OP, this is how <code>PdfCleanUp</code> works.
      * </p>
+     * 
+     * @see #testRedactStrictForMayankPandey()
+     * @see #testRedactStrictForMayankPandeyLarge()
      */
     @Test
     public void testRedactLikeMayankPandey() throws IOException, DocumentException
@@ -311,6 +314,88 @@ public class RedactText
             Rectangle rectangle = new Rectangle(380, 640, 430, 665);
             cleanUpLocations.add(new PdfCleanUpLocation(1, rectangle, BaseColor.BLACK));
             cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);   
+            cleaner.cleanUp();
+            stamper.close();
+            reader.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/38605538/itextpdf-redaction-partly-redacted-text-string-is-fully-removed">
+     * itextpdf Redaction :Partly redacted text string is fully removed
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B42NqA5UnXMVMDc4MnE5VmU5YVk/view">
+     * Document.pdf
+     * </a>
+     * <p>
+     * This test applies the redaction using the {@link StrictPdfCleanUpProcessor}
+     * which in contrast to the {@link PdfCleanUpProcessor} causes only text to be
+     * removed if it is <b>completely</b> inside the redaction zone . The original
+     * removes also text located merely <b>partially</b> inside the redaction zone.
+     * </p>
+     * <p>
+     * This might more correspond to what the OP desires.
+     * </p>
+     * @see #testRedactLikeMayankPandey()
+     * @see #testRedactStrictForMayankPandeyLarge()
+     */
+    @Test
+    public void testRedactStrictForMayankPandey() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("Document.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "Document-redacted-strict.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            StrictPdfCleanUpProcessor cleaner= null;
+            PdfStamper stamper = new PdfStamper(reader, result);
+            stamper.setRotateContents(false);
+            List<mkl.testarea.itext5.pdfcleanup.PdfCleanUpLocation> cleanUpLocations = new ArrayList<>();
+            Rectangle rectangle = new Rectangle(380, 640, 430, 665);
+            cleanUpLocations.add(new mkl.testarea.itext5.pdfcleanup.PdfCleanUpLocation(1, rectangle, BaseColor.BLACK));
+            cleaner = new StrictPdfCleanUpProcessor(cleanUpLocations, stamper);   
+            cleaner.cleanUp();
+            stamper.close();
+            reader.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/38605538/itextpdf-redaction-partly-redacted-text-string-is-fully-removed">
+     * itextpdf Redaction :Partly redacted text string is fully removed
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B42NqA5UnXMVMDc4MnE5VmU5YVk/view">
+     * Document.pdf
+     * </a>
+     * <p>
+     * This test applies the redaction using the {@link StrictPdfCleanUpProcessor}
+     * which in contrast to the {@link PdfCleanUpProcessor} causes only text to be
+     * removed if it is <b>completely</b> inside the redaction zone . The original
+     * removes also text located merely <b>partially</b> inside the redaction zone.
+     * Furthermore this test uses a larger redaction zone to check whether text
+     * completely contained in the redaction zone really is removed.
+     * </p>
+     * <p>
+     * This might more correspond to what the OP desires.
+     * </p>
+     * @see #testRedactLikeMayankPandey()
+     * @see #testRedactStrictForMayankPandey()
+     */
+    @Test
+    public void testRedactStrictForMayankPandeyLarge() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("Document.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "Document-redacted-strict-large.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            StrictPdfCleanUpProcessor cleaner= null;
+            PdfStamper stamper = new PdfStamper(reader, result);
+            stamper.setRotateContents(false);
+            List<mkl.testarea.itext5.pdfcleanup.PdfCleanUpLocation> cleanUpLocations = new ArrayList<>();
+            Rectangle rectangle = new Rectangle(380, 640, 430, 680);
+            cleanUpLocations.add(new mkl.testarea.itext5.pdfcleanup.PdfCleanUpLocation(1, rectangle, BaseColor.BLACK));
+            cleaner = new StrictPdfCleanUpProcessor(cleanUpLocations, stamper);   
             cleaner.cleanUp();
             stamper.close();
             reader.close();
