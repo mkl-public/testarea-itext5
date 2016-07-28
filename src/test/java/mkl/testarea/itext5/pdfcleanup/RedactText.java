@@ -275,14 +275,45 @@ public class RedactText
                     //System.out.println(i);
                     Rectangle mediabox = reader.getPageSize(i); 
                     cleanUpLocations.add(new PdfCleanUpLocation(i, new Rectangle(0,800,1000,1000)));
-
-
             }
             PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);
             cleaner.cleanUp();
             stamper.close();
             reader.close(); 
         }
+    }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/38605538/itextpdf-redaction-partly-redacted-text-string-is-fully-removed">
+     * itextpdf Redaction :Partly redacted text string is fully removed
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B42NqA5UnXMVMDc4MnE5VmU5YVk/view">
+     * Document.pdf
+     * </a>
+     * <p>
+     * This indeed is a case which shows that glyphs are completely removed even if their
+     * bounding box merely minutely intersects the redaction area. While not desired by
+     * the OP, this is how <code>PdfCleanUp</code> works.
+     * </p>
+     */
+    @Test
+    public void testRedactLikeMayankPandey() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("Document.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "Document-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfCleanUpProcessor cleaner= null;
+            PdfStamper stamper = new PdfStamper(reader, result);
+            stamper.setRotateContents(false);
+            List<PdfCleanUpLocation> cleanUpLocations = new ArrayList<PdfCleanUpLocation>();
+            Rectangle rectangle = new Rectangle(380, 640, 430, 665);
+            cleanUpLocations.add(new PdfCleanUpLocation(1, rectangle, BaseColor.BLACK));
+            cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);   
+            cleaner.cleanUp();
+            stamper.close();
+            reader.close();
+        }
     }
 }
