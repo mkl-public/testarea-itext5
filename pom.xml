@@ -43,6 +43,11 @@
             <version>${itextpdf.version}</version>
         </dependency>
         <dependency>
+            <groupId>com.itextpdf.tool</groupId>
+            <artifactId>xmlworker</artifactId>
+            <version>${itextpdf.version}</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
           <version>${junit.version}</version>
