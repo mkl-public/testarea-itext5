@@ -64,7 +64,7 @@ public class DrawGradient
         float y = 400;
         float side = 70;
         PdfShading axial = rotated ?
-                PdfShading.simpleAxial(writer, PageSize.A4.getWidth() - y, x, PageSize.A4.getWidth() - y, x + side, BaseColor.PINK, BaseColor.BLUE)
+                PdfShading.simpleAxial(writer, PageSize.A4.getRight() - y, x, PageSize.A4.getRight() - y, x + side, BaseColor.PINK, BaseColor.BLUE)
                 : PdfShading.simpleAxial(writer, x, y, x + side, y, BaseColor.PINK, BaseColor.BLUE);
         PdfShadingPattern shading = new PdfShadingPattern(axial);
         canvas.setShadingFill(shading);
