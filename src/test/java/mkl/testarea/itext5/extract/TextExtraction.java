@@ -559,10 +559,47 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/39932311/itext-java-not-parsing-text-properly-from-pdf">
+     * iText java not parsing text properly from PDF
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/vc9it3c7856ejli/testPDF.pdf?dl=0">
+     * testPDF.pdf
+     * </a>
+     * <p>
+     * Indeed, the 1.2 is located minutely below the SUBMITTALS. The
+     * {@link HorizontalTextExtractionStrategy2} can be used to fix this.
+     * </p>
+     */
+    @Test
+    public void testTestPDF() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("testPDF.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "testPDF.%s.txt").toString());
+            String horizontalContent = extractAndStore(reader, new File(RESULT_FOLDER, "testPDF.HOR.%s.txt").toString(), HorizontalTextExtractionStrategy2.class);
+
+            System.out.println("\nText (location strategy) testPDF.pdf \n************************");
+            System.out.println(content);
+            System.out.println("\nText (horizontal strategy) testPDF.pdf \n************************");
+            System.out.println(horizontalContent);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format, RenderFilter... filters) throws Exception
     {
         return extractAndStore(reader, format, LocationTextExtractionStrategy.class, filters);
     }
+
 
     <E extends TextExtractionStrategy> String extractAndStore(PdfReader reader, String format, Class<E> strategyClass, RenderFilter... filters) throws Exception
     {
