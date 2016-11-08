@@ -11,6 +11,8 @@ import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.ExceptionConverter;
+import com.itextpdf.text.pdf.PdfDictionary;
+import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.FilteredTextRenderListener;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
@@ -153,6 +155,96 @@ public class TextExtraction
             String content = extractAndStore(reader, new File(RESULT_FOLDER, "A00031.%s.txt").toString());
 
             System.out.println("\nText A00031.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/37748346/extract-text-with-itext-not-works-encoding-or-crypted-text">
+     * Extract text with iText not works: encoding or crypted text?
+     * </a>
+     * <br/>
+     * <a href="https://dl.dropboxusercontent.com/u/6413030/pb.pdf">
+     * pb.pdf
+     * </a>
+     * <p>
+     * The document has not been provided by the OP but by
+     * <a href="http://stackoverflow.com/users/1127485/sschuberth">sschuberth</a>
+     * in a comment.
+     * </p>
+     * <p>
+     * Indeed, this text is not properly extracted. But see {@link #testPbNoToUnicode()}.
+     * </p>
+     */
+    @Test
+    public void testPb() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("pb.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "pb.%s.txt").toString());
+
+            System.out.println("\nText pb.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/37748346/extract-text-with-itext-not-works-encoding-or-crypted-text">
+     * Extract text with iText not works: encoding or crypted text?
+     * </a>
+     * <br/>
+     * <a href="https://dl.dropboxusercontent.com/u/6413030/pb.pdf">
+     * pb.pdf
+     * </a>
+     * <p>
+     * The document has not been provided by the OP but by
+     * <a href="http://stackoverflow.com/users/1127485/sschuberth">sschuberth</a>
+     * in a comment.
+     * </p>
+     * <p>
+     * In contrast to {@link #testPb()}, we here first remove the <b>ToUnicode</b>
+     * tables of the fonts. And indeed, now extraction succeeds.
+     * </p>
+     */
+    @Test
+    public void testPbNoToUnicode() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("pb.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            for (int i = 1; i <= reader.getNumberOfPages(); i++)
+            {
+                PdfDictionary pageResources = reader.getPageResources(i);
+                if (pageResources == null)
+                    continue;
+                PdfDictionary pageFonts = pageResources.getAsDict(PdfName.FONT); 
+                if (pageFonts == null)
+                    continue;
+                for (PdfName key : pageFonts.getKeys())
+                {
+                    PdfDictionary fontDictionary = pageFonts.getAsDict(key);
+                    fontDictionary.put(PdfName.TOUNICODE, null);
+                }
+            }
+
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "pb-noToUnicode.%s.txt").toString());
+
+            System.out.println("\nText pb.pdf without ToUnicode\n************************");
             System.out.println(content);
             System.out.println("************************");
         }
