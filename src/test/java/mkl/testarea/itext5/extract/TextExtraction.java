@@ -16,6 +16,7 @@ import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.FilteredTextRenderListener;
 import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy;
+import com.itextpdf.text.pdf.parser.LocationTextExtractionStrategy.TextChunk;
 import com.itextpdf.text.pdf.parser.PdfTextExtractor;
 import com.itextpdf.text.pdf.parser.RenderFilter;
 import com.itextpdf.text.pdf.parser.SimpleTextExtractionStrategy;
@@ -677,6 +678,44 @@ public class TextExtraction
             System.out.println("\nText (location strategy) testPDF.pdf \n************************");
             System.out.println(content);
             System.out.println("\nText (horizontal strategy) testPDF.pdf \n************************");
+            System.out.println(horizontalContent);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/40659056/itext-locationtextextractionstrategy-horizontaltextextractionstrategy-splits-tex">
+     * iText LocationTextExtractionStrategy/HorizontalTextExtractionStrategy splits text into single characters
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/iyo9c3hp6qr43u8/qq-test4802_creo3_ttf.pdf?dl=0">
+     * qq-test4802_creo3_ttf.pdf
+     * </a>
+     * <p>
+     * This test merely shows that the {@link HorizontalTextExtractionStrategy2} is
+     * not a good strategy for the PDF in question as there are non-horizontal text
+     * parts and overlapping lines. The fragmentation observed by the OP only exists
+     * in the {@link TextChunk TextChunks}. 
+     * </p>
+     */
+    @Test
+    public void testQqTest4802Ttf() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("qq-test4802_creo3_ttf.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "qq-test4802_creo3_ttf.%s.txt").toString());
+            String horizontalContent = extractAndStore(reader, new File(RESULT_FOLDER, "qq-test4802_creo3_ttf.HOR.%s.txt").toString(), HorizontalTextExtractionStrategy2.class);
+
+            System.out.println("\nText (location strategy) qq-test4802_creo3_ttf.pdf \n************************");
+            System.out.println(content);
+            System.out.println("\nText (horizontal strategy) qq-test4802_creo3_ttf.pdf \n************************");
             System.out.println(horizontalContent);
             System.out.println("************************");
         }
