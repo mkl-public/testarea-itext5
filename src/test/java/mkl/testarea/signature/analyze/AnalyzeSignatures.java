@@ -74,4 +74,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/40979157/how-to-detect-a-signed-pdf-is-valid-with-itext">
+     * How to detect a signed pdf is valid with iText?
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B8fLGZLVFcLyeXF0TjluNzRjT3c/view?usp=sharing">
+     * corrupted-sign-file.pdf
+     * </a>,
+     * the signature being extracted as "corrupted-sign-file.pdf.Signature2.raw".
+     * 
+     * <p>
+     * It does not become clear here why Adobe Reader rejects the signature.
+     * </p>
+     */
+    @Test
+    public void testKe20Signature() throws IOException, CMSException, TSPException, OperatorCreationException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("corrupted-sign-file.pdf.Signature2.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }

@@ -10,6 +10,7 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1TaggedObject;
 import org.bouncycastle.asn1.cms.Attribute;
+import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.ocsp.OCSPResponse;
 import org.bouncycastle.asn1.ocsp.ResponderID;
@@ -210,80 +211,84 @@ public class SignatureAnalyzer
 
                 System.out.println();
             }            
-            
-            attributes = signerInfo.getUnsignedAttributes().toHashtable();
-            
-            for (Map.Entry<ASN1ObjectIdentifier, ?> attributeEntry : attributes.entrySet())
+
+            AttributeTable attributeTable = signerInfo.getUnsignedAttributes();
+            if (attributeTable != null)
             {
-                System.out.printf("Unsigned attribute %s", attributeEntry.getKey());
+                attributes = attributeTable.toHashtable();
                 
-                if (attributeEntry.getKey().equals(/*SIGNATURE_TIME_STAMP_OID*/PKCSObjectIdentifiers.id_aa_signatureTimeStampToken))
+                for (Map.Entry<ASN1ObjectIdentifier, ?> attributeEntry : attributes.entrySet())
                 {
-                    System.out.println(" (Signature Time Stamp)");
-                    Attribute attribute = (Attribute) attributeEntry.getValue();
+                    System.out.printf("Unsigned attribute %s", attributeEntry.getKey());
                     
-                    for (ASN1Encodable encodable : attribute.getAttrValues().toArray())
+                    if (attributeEntry.getKey().equals(/*SIGNATURE_TIME_STAMP_OID*/PKCSObjectIdentifiers.id_aa_signatureTimeStampToken))
                     {
-                        ContentInfo contentInfo = ContentInfo.getInstance(encodable);
-                        TimeStampToken timeStampToken = new TimeStampToken(contentInfo);
-                        TimeStampTokenInfo tstInfo = timeStampToken.getTimeStampInfo();
-
-                        System.out.printf("Authority/SN %s / %s\n", tstInfo.getTsa(), tstInfo.getSerialNumber());
+                        System.out.println(" (Signature Time Stamp)");
+                        Attribute attribute = (Attribute) attributeEntry.getValue();
                         
-                        DigestCalculator digCalc = digCalcProvider .get(tstInfo.getHashAlgorithm());
-
-                        OutputStream dOut = digCalc.getOutputStream();
-
-                        dOut.write(signerInfo.getSignature());
-                        dOut.close();
-
-                        byte[] expectedDigest = digCalc.getDigest();
-                        boolean matches =  Arrays.constantTimeAreEqual(expectedDigest, tstInfo.getMessageImprintDigest());
-                        
-                        System.out.printf("Digest match? %s\n", matches);
-
-                        System.out.printf("Signer %s / %s\n", timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber());
-                        
-                        Store tstCertificates = timeStampToken.getCertificates();
-                        Collection tstCerts = tstCertificates.getMatches(new SignerId(timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber()));
-                        
-                        System.out.print("Certificate: ");
-                        
-                        if (tstCerts.size() != 1)
+                        for (ASN1Encodable encodable : attribute.getAttrValues().toArray())
                         {
-                            System.out.printf("Could not identify, %s candidates\n", tstCerts.size());
-                        }
-                        else
-                        {
-                            X509CertificateHolder tstCert = (X509CertificateHolder) tstCerts.iterator().next();
-                            System.out.printf("%s\n", tstCert.getSubject());
+                            ContentInfo contentInfo = ContentInfo.getInstance(encodable);
+                            TimeStampToken timeStampToken = new TimeStampToken(contentInfo);
+                            TimeStampTokenInfo tstInfo = timeStampToken.getTimeStampInfo();
+
+                            System.out.printf("Authority/SN %s / %s\n", tstInfo.getTsa(), tstInfo.getSerialNumber());
                             
-                            int version = tstCert.toASN1Structure().getVersionNumber();
-                            System.out.printf("Version: %s\n", version);
-                            if (version != 3)
-                                System.out.println("Error: Certificate must be version 3 to have an ExtendedKeyUsage extension.");
+                            DigestCalculator digCalc = digCalcProvider .get(tstInfo.getHashAlgorithm());
+
+                            OutputStream dOut = digCalc.getOutputStream();
+
+                            dOut.write(signerInfo.getSignature());
+                            dOut.close();
+
+                            byte[] expectedDigest = digCalc.getDigest();
+                            boolean matches =  Arrays.constantTimeAreEqual(expectedDigest, tstInfo.getMessageImprintDigest());
                             
-                            Extension ext = tstCert.getExtension(Extension.extendedKeyUsage);
-                            if (ext == null)
-                                System.out.println("Error: Certificate must have an ExtendedKeyUsage extension.");
+                            System.out.printf("Digest match? %s\n", matches);
+
+                            System.out.printf("Signer %s / %s\n", timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber());
+                            
+                            Store tstCertificates = timeStampToken.getCertificates();
+                            Collection tstCerts = tstCertificates.getMatches(new SignerId(timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber()));
+                            
+                            System.out.print("Certificate: ");
+                            
+                            if (tstCerts.size() != 1)
+                            {
+                                System.out.printf("Could not identify, %s candidates\n", tstCerts.size());
+                            }
                             else
                             {
-                                if (!ext.isCritical())
-                                {
-                                    System.out.println("Error: Certificate must have an ExtendedKeyUsage extension marked as critical.");
-                                }
+                                X509CertificateHolder tstCert = (X509CertificateHolder) tstCerts.iterator().next();
+                                System.out.printf("%s\n", tstCert.getSubject());
                                 
-                                ExtendedKeyUsage    extKey = ExtendedKeyUsage.getInstance(ext.getParsedValue());
-                                if (!extKey.hasKeyPurposeId(KeyPurposeId.id_kp_timeStamping) || extKey.size() != 1)
+                                int version = tstCert.toASN1Structure().getVersionNumber();
+                                System.out.printf("Version: %s\n", version);
+                                if (version != 3)
+                                    System.out.println("Error: Certificate must be version 3 to have an ExtendedKeyUsage extension.");
+                                
+                                Extension ext = tstCert.getExtension(Extension.extendedKeyUsage);
+                                if (ext == null)
+                                    System.out.println("Error: Certificate must have an ExtendedKeyUsage extension.");
+                                else
                                 {
-                                    System.out.println("Error: ExtendedKeyUsage not solely time stamping.");
-                                }                             
+                                    if (!ext.isCritical())
+                                    {
+                                        System.out.println("Error: Certificate must have an ExtendedKeyUsage extension marked as critical.");
+                                    }
+                                    
+                                    ExtendedKeyUsage    extKey = ExtendedKeyUsage.getInstance(ext.getParsedValue());
+                                    if (!extKey.hasKeyPurposeId(KeyPurposeId.id_kp_timeStamping) || extKey.size() != 1)
+                                    {
+                                        System.out.println("Error: ExtendedKeyUsage not solely time stamping.");
+                                    }                             
+                                }
                             }
                         }
                     }
+                    else
+                        System.out.println();
                 }
-                else
-                    System.out.println();
             }
         } 
     }
