@@ -36,9 +36,10 @@ public class Stamping
      * <a href="https://drive.google.com/file/d/0B3-DPMN-iMOmNjItRVJ4MHRZX3M/view?usp=sharing">
      * template.pdf
      * </a>
-     * 
+     * <p>
      * ... as it turned out, the problem was not an iText issue at all; in the OP's web application
      * the template.pdf had already been mangled by maven resource filtering.
+     * </p>
      */
     @Test
     public void testStampTemplate() throws DocumentException, IOException
@@ -53,4 +54,80 @@ public class Stamping
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/41183349/pdf-file-size-is-largely-increased-when-copied-using-itext-java-library">
+     * pdf file size is largely increased when copied using itext java library
+     * </a>
+     * <br/>
+     * <a href="https://www.pdfill.com/download/AcroJS.pdf">
+     * AcroJS.pdf
+     * </a>
+     * <p>
+     * Indeed, using the OP's code the size explodes.
+     * </p>
+     */
+    @Test
+    public void testStampAcroJS() throws DocumentException, IOException
+    {
+        try (   InputStream resourceStream = getClass().getResourceAsStream("AcroJS.pdf");
+                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "AcroJS-stamped.pdf"))    )
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            PdfStamper stamper = new PdfStamper(reader, outputStream);
+
+            stamper.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/41183349/pdf-file-size-is-largely-increased-when-copied-using-itext-java-library">
+     * pdf file size is largely increased when copied using itext java library
+     * </a>
+     * <br/>
+     * <a href="https://www.pdfill.com/download/AcroJS.pdf">
+     * AcroJS.pdf
+     * </a>
+     * <p>
+     * Using append mode, things are pretty much like in the original file.
+     * </p>
+     */
+    @Test
+    public void testStampAcroJSAppended() throws DocumentException, IOException
+    {
+        try (   InputStream resourceStream = getClass().getResourceAsStream("AcroJS.pdf");
+                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "AcroJS-stamped-appended.pdf"))    )
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            PdfStamper stamper = new PdfStamper(reader, outputStream, '\0', true);
+
+            stamper.close();
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/41183349/pdf-file-size-is-largely-increased-when-copied-using-itext-java-library">
+     * pdf file size is largely increased when copied using itext java library
+     * </a>
+     * <br/>
+     * <a href="https://www.pdfill.com/download/AcroJS.pdf">
+     * AcroJS.pdf
+     * </a>
+     * <p>
+     * Using full compression is much more compressed than the original.
+     * </p>
+     */
+    @Test
+    public void testStampAcroJSCompressed() throws DocumentException, IOException
+    {
+        try (   InputStream resourceStream = getClass().getResourceAsStream("AcroJS.pdf");
+                OutputStream outputStream = new FileOutputStream(new File(RESULT_FOLDER, "AcroJS-stamped-compressed.pdf"))    )
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            PdfStamper stamper = new PdfStamper(reader, outputStream);
+            stamper.setFullCompression();
+
+            stamper.close();
+        }
+    }
+    
 }
