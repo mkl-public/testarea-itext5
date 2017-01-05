@@ -3,25 +3,34 @@ package mkl.testarea.signature.misc;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Security;
 import java.security.cert.X509Certificate;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+
+import javax.crypto.Cipher;
+import javax.crypto.NoSuchPaddingException;
 
 import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.AuthorityKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectKeyIdentifier;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.asn1.x509.X509Extension;
+import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.X509v3CertificateBuilder;
 import org.bouncycastle.cert.bc.BcX509ExtensionUtils;
 import org.bouncycastle.cert.jcajce.JcaCertStore;
@@ -33,6 +42,7 @@ import org.bouncycastle.cms.CMSSignedData;
 import org.bouncycastle.cms.CMSSignedDataGenerator;
 import org.bouncycastle.cms.CMSTypedData;
 import org.bouncycastle.cms.SignerId;
+import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.SignerInformationVerifier;
 import org.bouncycastle.cms.SignerInformationVerifierProvider;
 import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
@@ -44,6 +54,7 @@ import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
 import org.bouncycastle.util.Store;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -213,4 +224,35 @@ public class RsaSsaPss
         System.out.println("Verifies? " + verifies);
     }
 
+    /**
+     * This specific doesn't verify in combination with its document, so
+     * I wanted to look at its contents. As RSASSA-PSS does not allow to
+     * read the original hash from the decrypted signature bytes, this
+     * did not help at all.
+     */
+    @Test
+    public void testDecryptSLMBC_PSS_Test1() throws IOException, CMSException, GeneralSecurityException
+    {
+        Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
+        KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
+
+        try (   InputStream resource = getClass().getResourceAsStream("SLMBC-PSS-Test1.cms")    )
+        {
+            CMSSignedData cmsSignedData = new CMSSignedData(resource);
+            for (SignerInformation signerInformation : (Iterable<SignerInformation>)cmsSignedData.getSignerInfos().getSigners())
+            {
+                Collection<X509CertificateHolder> x509CertificateHolders = cmsSignedData.getCertificates().getMatches(signerInformation.getSID());
+                if (x509CertificateHolders.size() != 1)
+                {
+                    Assert.fail("Cannot uniquely determine signer certificate.");
+                }
+                X509CertificateHolder x509CertificateHolder = x509CertificateHolders.iterator().next();
+                PublicKey publicKey = rsaKeyFactory.generatePublic(new X509EncodedKeySpec(x509CertificateHolder.getSubjectPublicKeyInfo().getEncoded()));
+                cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
+                byte[] bytes = cipherNoPadding.doFinal(signerInformation.getSignature());
+
+                Files.write(new File(RESULT_FOLDER, "SLMBC-PSS-Test1-signature-decoded").toPath(), bytes);
+            }
+        }
+    }
 }
