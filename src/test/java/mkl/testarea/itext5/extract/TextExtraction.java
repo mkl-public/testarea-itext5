@@ -726,6 +726,48 @@ public class TextExtraction
         }
     }
 
+    /**
+     * <a href="http://stackoverflow.com/questions/42634846/line-order-in-pdf-seems-to-be-randomly-scrambled">
+     * Line order in PDF seems to be randomly scrambled
+     * </a>
+     * <br/>
+     * <a href="https://mega.nz/#!ndgwCS7Y!VwxHt0Eg--AvW7-DnxUlHeQIt2a9XdkRU1vQxXhQeuk">
+     * Huttig - 2017 Therma-Tru Catalog.pdf
+     * </a>
+     * <br/>
+     * <a href="https://mega.nz/#!WB4ywArC!ToF4OyTnXWwVwS7N1oiEGQTjTM85jqwAFvcBdFM5M-s">
+     * HUTTIG - ThermaTru JAN2016.pdf
+     * </a>
+     * <p>
+     * This test shows the order in which the respective page 7 of the documents is built,
+     * the 2016 catalog order corresponds to a human interpretation, the 2017 catalog oder
+     * not at all.
+     * </p>
+     */
+    @Test
+    public void testHuttigCatalogsPage7() throws Exception
+    {
+        try (InputStream resourceStream = getClass().getResourceAsStream("HUTTIG - ThermaTru JAN2016.pdf"))
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extract(reader, 7, new SimpleTextExtractionStrategy());
+            Files.write(new File(RESULT_FOLDER, "HUTTIG - ThermaTru JAN2016.7.txt").toPath(), content.getBytes("UTF8"));
+
+            System.out.println("\nText (simple strategy) HUTTIG - ThermaTru JAN2016.pdf \n************************");
+            System.out.println(content);
+        }
+
+        try (InputStream resourceStream = getClass().getResourceAsStream("Huttig - 2017 Therma-Tru Catalog.pdf"))
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extract(reader, 7, new SimpleTextExtractionStrategy());
+            Files.write(new File(RESULT_FOLDER, "Huttig - 2017 Therma-Tru Catalog.7.txt").toPath(), content.getBytes("UTF8"));
+
+            System.out.println("\nText (simple strategy) Huttig - 2017 Therma-Tru Catalog.pdf \n************************");
+            System.out.println(content);
+        }
+    }
+
     String extractAndStore(PdfReader reader, String format, RenderFilter... filters) throws Exception
     {
         return extractAndStore(reader, format, LocationTextExtractionStrategy.class, filters);
