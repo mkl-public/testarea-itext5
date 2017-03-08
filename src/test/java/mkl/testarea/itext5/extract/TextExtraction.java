@@ -743,6 +743,10 @@ public class TextExtraction
      * the 2016 catalog order corresponds to a human interpretation, the 2017 catalog oder
      * not at all.
      * </p>
+     * <p>
+     * Using the {@link LayoutTextExtractionStrategy} one sees that the layout can be
+     * extracted quite fine. 
+     * </p>
      */
     @Test
     public void testHuttigCatalogsPage7() throws Exception
@@ -751,9 +755,17 @@ public class TextExtraction
         {
             PdfReader reader = new PdfReader(resourceStream);
             String content = extract(reader, 7, new SimpleTextExtractionStrategy());
-            Files.write(new File(RESULT_FOLDER, "HUTTIG - ThermaTru JAN2016.7.txt").toPath(), content.getBytes("UTF8"));
+            Files.write(new File(RESULT_FOLDER, "HUTTIG - ThermaTru JAN2016.7-simple.txt").toPath(), content.getBytes("UTF8"));
 
             System.out.println("\nText (simple strategy) HUTTIG - ThermaTru JAN2016.pdf \n************************");
+            System.out.println(content);
+
+            LayoutTextExtractionStrategy layoutTextExtractionStrategy = new LayoutTextExtractionStrategy();
+            layoutTextExtractionStrategy.fixedCharWidth = 3;
+            content = extract(reader, 7, layoutTextExtractionStrategy);
+            Files.write(new File(RESULT_FOLDER, "HUTTIG - ThermaTru JAN2016.7-layout.txt").toPath(), content.getBytes("UTF8"));
+
+            System.out.println("\nText (layout strategy) HUTTIG - ThermaTru JAN2016.pdf \n************************");
             System.out.println(content);
         }
 
@@ -761,9 +773,17 @@ public class TextExtraction
         {
             PdfReader reader = new PdfReader(resourceStream);
             String content = extract(reader, 7, new SimpleTextExtractionStrategy());
-            Files.write(new File(RESULT_FOLDER, "Huttig - 2017 Therma-Tru Catalog.7.txt").toPath(), content.getBytes("UTF8"));
+            Files.write(new File(RESULT_FOLDER, "Huttig - 2017 Therma-Tru Catalog.7-simple.txt").toPath(), content.getBytes("UTF8"));
 
             System.out.println("\nText (simple strategy) Huttig - 2017 Therma-Tru Catalog.pdf \n************************");
+            System.out.println(content);
+
+            LayoutTextExtractionStrategy layoutTextExtractionStrategy = new LayoutTextExtractionStrategy();
+            layoutTextExtractionStrategy.fixedCharWidth = 3;
+            content = extract(reader, 7, layoutTextExtractionStrategy);
+            Files.write(new File(RESULT_FOLDER, "Huttig - 2017 Therma-Tru Catalog.7-layout.txt").toPath(), content.getBytes("UTF8"));
+
+            System.out.println("\nText (layout strategy) Huttig - 2017 Therma-Tru Catalog.pdf \n************************");
             System.out.println(content);
         }
     }
