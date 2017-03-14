@@ -6,7 +6,6 @@ import java.io.InputStream;
 import org.junit.Assert;
 import org.junit.Test;
 
-import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 
 /**
@@ -33,7 +32,29 @@ public class OpenFile
         try ( InputStream resource = getClass().getResourceAsStream("Aviva_Investors_UK_Fund_Services_Limited_UK_Equity_Income_Class_2_Income_[GBP].pdf") )
         {
             PdfReader pdfReader = new PdfReader(resource);
-            Assert.assertEquals("", "Key Investor Information", pdfReader.getInfo().get(PdfName.TITLE));
+            Assert.assertEquals("", "Key Investor Information", pdfReader.getInfo().get("Title"));
+        }
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/42778329/printing-multiple-pdf-in-itext-from-single-page-template-using-java">
+     * printing multiple pdf in itext from single page template using java
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B1kzuWl4_DrdaW14VlNyZXN5bW8/view?usp=sharing">
+     * LegalNotice.pdf
+     * </a>
+     * <p>
+     * Can read without issue.
+     * </p>
+     */
+    @Test
+    public void testLegalNotice() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("LegalNotice.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+            Assert.assertEquals("", "Jigyasu", pdfReader.getInfo().get("Author"));
         }
     }
 }
