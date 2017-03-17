@@ -56,6 +56,8 @@ public class VerifySignature
     @Test
     public void testVerifyTestMGomez() throws IOException, GeneralSecurityException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
     {
+        System.out.println("\n\nTestMGomez.pdf\n==============");
+    	
         try (   InputStream resource = getClass().getResourceAsStream("TestMGomez.pdf") )
         {
             PdfReader reader = new PdfReader(resource);
@@ -114,7 +116,83 @@ public class VerifySignature
     @Test
     public void testVerifySignedOutput() throws IOException, GeneralSecurityException
     {
+        System.out.println("\n\nsignedoutput.pdf\n================");
+    	
         try (   InputStream resource = getClass().getResourceAsStream("signedoutput.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource);
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/42824577/itext-can-not-verify-signed-pdf-docs-edited-by-nitro-pro-10-11">
+     * itext can not verify signed pdf docs edited by nitro pro 10/11
+     * </a>
+     * <br/>
+     * <a href="https://alimail.fadada.com/signed.pdf">
+     * babylove_signed.pdf
+     * </a>
+     * <p>
+     * Validation correctly shows verification success for a single
+     * signature that does cover the whole document.
+     * </p>
+     */
+    @Test
+    public void testVerifyBabyloveSigned() throws IOException, GeneralSecurityException
+    {
+        System.out.println("\n\nbabylove_signed.pdf\n===================");
+    	
+        try (   InputStream resource = getClass().getResourceAsStream("babylove_signed.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource);
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
+    
+    /**
+     * <a href="http://stackoverflow.com/questions/42824577/itext-can-not-verify-signed-pdf-docs-edited-by-nitro-pro-10-11">
+     * itext can not verify signed pdf docs edited by nitro pro 10/11
+     * </a>
+     * <br/>
+     * <a href="https://alimail.fadada.com/signed&modify_by_nitro.pdf">
+     * babylove_signed&modify_by_nitro.pdf
+     * </a>
+     * <p>
+     * Validation correctly shows verification success for a single
+     * signature that does <b>not</b> cover the whole document.
+     * </p>
+     */
+    @Test
+    public void testVerifyBabyloveSignedAndModifyByNitro() throws IOException, GeneralSecurityException
+    {
+        System.out.println("\n\nbabylove_signed&modify_by_nitro.pdf\n===================");
+    	
+        try (   InputStream resource = getClass().getResourceAsStream("babylove_signed&modify_by_nitro.pdf") )
         {
             PdfReader reader = new PdfReader(resource);
             AcroFields acroFields = reader.getAcroFields();
