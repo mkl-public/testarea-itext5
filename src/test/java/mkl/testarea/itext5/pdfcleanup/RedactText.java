@@ -401,4 +401,61 @@ public class RedactText
             reader.close();
         }
     }
+
+    /**
+     * <a href="http://stackoverflow.com/questions/43211367/getting-exception-while-redacting-pdf-using-itext">
+     * getting exception while redacting pdf using itext
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B-zalNTEeIOwM1JJVWctcW8ydU0/view?usp=drivesdk">
+     * edited_120192824_5 (1).pdf
+     * </a>
+     * <p>
+     * Indeed, the PdfClean classes throw a {@link NullPointerException} on page
+     * 1 of this PDF. As it turns out, the cause is that the PDF makes use of a
+     * construct which according to the PDF specification is obsolete and iText,
+     * therefore, chose not to support. 
+     * </p>
+     */
+    @Test
+    public void testRedactLikeDevAvitesh() throws DocumentException, IOException
+    {
+//      InputStream resource = new FileInputStream("D:/itext/edited_120192824_5 (1).pdf");
+//      OutputStream result = new FileOutputStream(new File(OUTPUTDIR,
+//              "aviteshs.pdf"));
+
+        try (   InputStream resource = getClass().getResourceAsStream("edited_120192824_5 (1).pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "edited_120192824_5 (1)-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+            int pageCount = reader.getNumberOfPages();
+            Rectangle linkLocation1 = new Rectangle(440f, 700f, 470f, 710f);
+            Rectangle linkLocation2 = new Rectangle(308f, 205f, 338f, 215f);
+            Rectangle linkLocation3 = new Rectangle(90f, 155f, 130f, 165f);
+            List<PdfCleanUpLocation> cleanUpLocations = new ArrayList<PdfCleanUpLocation>();
+            for (int currentPage = 1; currentPage <= pageCount; currentPage++) {
+                if (currentPage == 1) {
+                    cleanUpLocations.add(new PdfCleanUpLocation(currentPage,
+                            linkLocation1, BaseColor.BLACK));
+                    cleanUpLocations.add(new PdfCleanUpLocation(currentPage,
+                            linkLocation2, BaseColor.BLACK));
+                    cleanUpLocations.add(new PdfCleanUpLocation(currentPage,
+                            linkLocation3, BaseColor.BLACK));
+                } else {
+                    cleanUpLocations.add(new PdfCleanUpLocation(currentPage,
+                            linkLocation1, BaseColor.BLACK));
+                }
+            }
+            PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(cleanUpLocations,
+                    stamper);
+            try {
+                cleaner.cleanUp();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            stamper.close();
+            reader.close();
+        }
+    }
 }
