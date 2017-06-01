@@ -458,4 +458,37 @@ public class RedactText
             reader.close();
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/44304695/itext-5-5-11-bold-text-looks-blurry-after-using-pdfcleanupprocessor">
+     * iText 5.5.11 - bold text looks blurry after using PdfCleanUpProcessor
+     * </a>
+     * <br/>
+     * <a href="http://s000.tinyupload.com/index.php?file_id=52420782334200922303">
+     * before.pdf
+     * </a>
+     * <p>
+     * Indeed, the observation by the OP can be reproduced. The issue has been introduced
+     * into iText in commits d5abd23 and 9967627, both dated May 4th, 2015.
+     * </p>
+     */
+    @Test
+    public void testRedactLikeTieco() throws DocumentException, IOException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("before.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "before-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, result);
+            List<PdfCleanUpLocation> cleanUpLocations = new ArrayList<PdfCleanUpLocation>();
+
+            cleanUpLocations.add(new PdfCleanUpLocation(1, new Rectangle(0f, 0f, 595f, 680f)));
+
+            PdfCleanUpProcessor cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);
+            cleaner.cleanUp();
+
+            stamper.close();
+            reader.close();
+        }
+    }
 }
