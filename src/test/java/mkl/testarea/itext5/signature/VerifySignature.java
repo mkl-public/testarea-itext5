@@ -210,4 +210,43 @@ public class VerifySignature
 
         System.out.println();
     }
+    
+    /**
+     * <a href="https://stackoverflow.com/questions/45027712/invalid-signature-when-signing-an-existing-sigrature-field-with-cosign-sapi">
+     * Invalid signature when signing an existing sigrature field with CoSign SAPI
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/j6eme53lleaok13/test_signed.pdf?dl=0">
+     * test_signed-1.pdf
+     * </a>
+     * <p>
+     * Validation shows verification success while both Adobe and SD DSS fail.
+     * Embedded certificates have issues (emailAddress RDN is typed PrintableString
+     * which is wrong - specified is IA5String - and does not even make sense as
+     * there is no '@' in PrintableString), but does this explain it?
+     * </p>
+     */
+    @Test
+    public void testVerifyTestSigned1() throws IOException, GeneralSecurityException
+    {
+        System.out.println("\n\ntest_signed-1.pdf\n===================");
+        
+        try (   InputStream resource = getClass().getResourceAsStream("test_signed-1.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource);
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
 }
