@@ -39,6 +39,40 @@ public class TextExtraction
     }
 
     /**
+     * <a href="https://stackoverflow.com/questions/45662544/itextsharp-library-does-not-extract-text-from-my-file">
+     * iTextSharp library does not extract text from my file
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/n4ws2fhr72xaa3s/Text%20Extraction%20-%20Colddishes_C.pdf?dl=0">
+     * Text Extraction - Colddishes_C.pdf
+     * </a>
+     * <p>
+     * The PDF declarations of the Asian fonts allow derival of a
+     * character code to Unicode map only by means of their ROS
+     * values. Thus, itext-asian.jar is required for text extraction. 
+     * </p>
+     */
+    @Test
+    public void testTextExtractionColddishesC() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("Text Extraction - Colddishes_C.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "Text Extraction - Colddishes_C.%s.txt").toString());
+
+            System.out.println("\nText Extraction - Colddishes_C.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * <a href="http://stackoverflow.com/questions/37919301/itext-textextracting-example-not-working">
      * itext: Textextracting example not working
      * </a>
@@ -128,6 +162,26 @@ public class TextExtraction
             String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "FACTSHEET05ENSG07100715FO02332302.%s.txt").toString());
 
             System.out.println("\nText FACTSHEET05ENSG07100715FO02332302.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    @Test
+    public void testSelection() throws Exception
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("selection.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStore(reader, new File(RESULT_FOLDER, "selection.%s.txt").toString());
+
+            System.out.println("\nText selection.pdf\n************************");
             System.out.println(content);
             System.out.println("************************");
         }

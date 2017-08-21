@@ -6,7 +6,7 @@
 	<artifactId>testarea-itext5</artifactId>
 	<packaging>jar</packaging>
 	<name>Test area for public iText v5 issues on stackoverflow etc</name>
-	<version>5.5.12</version>
+	<version>5.5.13-SNAPSHOT</version>
 
 	<build>
 		<plugins>
@@ -24,7 +24,7 @@
 
   <properties>
     <junit.version>4.7</junit.version>
-    <itextpdf.version>5.5.12</itextpdf.version>
+    <itextpdf.version>5.5.13-SNAPSHOT</itextpdf.version>
   </properties>
 	<dependencies>
 		<dependency>
@@ -32,6 +32,11 @@
 			<artifactId>itextpdf</artifactId>
             <version>${itextpdf.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itext-asian</artifactId>
+            <version>5.2.0</version>
+        </dependency>
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>itext-xtra</artifactId>
