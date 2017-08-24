@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -15,10 +16,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Element;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.PdfStamper;
+import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.security.BouncyCastleDigest;
 import com.itextpdf.text.pdf.security.DigestAlgorithms;
 import com.itextpdf.text.pdf.security.ExternalDigest;
@@ -405,5 +411,72 @@ public class CreateSignature
         ExternalDigest digest = new BouncyCastleDigest();
         ExternalSignature signature = new PrivateKeySignature(pk, digestAlgorithm, provider);
         MakeSignature.signDetached(appearance, digest, signature, chain, null, null, null, 0, subfilter);
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/45062602/itext-pdfappearence-issue">
+     * Text - PDFAppearence issue
+     * </a>
+     * <p>
+     * This test shows how one can create a custom signature layer 2.
+     * As the OP of the question at hand mainly wants to generate a
+     * pure DESCRIPTION appearance that uses the whole area, we here
+     * essentially copy the PdfSignatureAppearance.getAppearance code
+     * for generating layer 2 in pure DESCRIPTION mode and apply it
+     * to a plain pre-fetched layer 2.
+     * </p>
+     */
+    @Test
+    public void signWithCustomLayer2() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        try (   InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf")  )
+        {
+            PdfReader reader = new PdfReader(resource);
+            FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "test-customLayer2.pdf"));
+            PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0');
+
+            PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            appearance.setReason("reason");
+            appearance.setLocation("location");
+            appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+
+            // This essentially is the PdfSignatureAppearance.getAppearance code
+            // for generating layer 2 in pure DESCRIPTION mode applied to a plain
+            // pre-fetched layer 2.
+            // vvvvv
+            PdfTemplate layer2 = appearance.getLayer(2);
+            String text = "We're using iText to put a text inside a signature placeholder in a PDF. "
+                    + "We use a code snippet similar to this to define the Signature Appearence.\n"
+                    + "Everything works fine, but the signature text does not fill all the signature "
+                    + "placeholder area as expected by us, but the area filled seems to have an height "
+                    + "that is approximately the 70% of the available space.\n"
+                    + "As a result, sometimes especially if the length of the signature text is quite "
+                    + "big, the signature text does not fit in the placeholder and the text is striped "
+                    + "away.";
+            Font font = new Font();
+            float size = font.getSize();
+            final float MARGIN = 2;
+            Rectangle dataRect = new Rectangle(
+                    MARGIN,
+                    MARGIN,
+                    appearance.getRect().getWidth() - MARGIN,
+                    appearance.getRect().getHeight() - MARGIN);
+            if (size <= 0) {
+                Rectangle sr = new Rectangle(dataRect.getWidth(), dataRect.getHeight());
+                size = ColumnText.fitText(font, text, sr, 12, appearance.getRunDirection());
+            }
+            ColumnText ct = new ColumnText(layer2);
+            ct.setRunDirection(appearance.getRunDirection());
+            ct.setSimpleColumn(new Phrase(text, font), dataRect.getLeft(), dataRect.getBottom(), dataRect.getRight(), dataRect.getTop(), size, Element.ALIGN_LEFT);
+            ct.go();
+            // ^^^^^
+
+            ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+            ExternalDigest digest = new BouncyCastleDigest();
+            MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
+        }
     }
 }
