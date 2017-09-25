@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.security.GeneralSecurityException;
 import java.security.Security;
+import java.util.HashMap;
 import java.util.List;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -15,6 +16,7 @@ import org.junit.Test;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.security.CertificateInfo;
+import com.itextpdf.text.pdf.security.EncryptionAlgorithms;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 
 /**
@@ -232,6 +234,54 @@ public class VerifySignature
         System.out.println("\n\ntest_signed-1.pdf\n===================");
         
         try (   InputStream resource = getClass().getResourceAsStream("test_signed-1.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource);
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
+    
+    /**
+     * <a href="https://stackoverflow.com/questions/46346144/digital-signature-verification-with-itext-not-working">
+     * Digital Signature Verification with itext not working
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/open?id=0B1XKjvoeoyPZWnk5bzc5T3VSQUk">
+     * test_dsp.pdf
+     * </a>
+     * <p>
+     * The issue is that the signature uses ECDSA and iText 5 does not (yet)
+     * support ECDSA. "Support" here actually means that iText cannot find
+     * the name ECDSA for the OID 1.2.840.10045.4.3.2 (SHA256withECDSA) to
+     * build a proper algorithm name to use for verification.
+     * </p>
+     * <p>
+     * Adding a mapping "1.2.840.10045.4.3.2" to "ECDSA" resolves the issue.
+     * </p>
+     */
+    @Test
+    public void testVerifyTestDsp() throws IOException, GeneralSecurityException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
+    {
+        Field algorithmNamesField = EncryptionAlgorithms.class.getDeclaredField("algorithmNames");
+        algorithmNamesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        HashMap<String, String> algorithmNames = (HashMap<String, String>) algorithmNamesField.get(null);
+        algorithmNames.put("1.2.840.10045.4.3.2", "ECDSA");
+
+        System.out.println("\n\ntest_dsp.pdf\n===================");
+        
+        try (   InputStream resource = getClass().getResourceAsStream("test_dsp.pdf") )
         {
             PdfReader reader = new PdfReader(resource);
             AcroFields acroFields = reader.getAcroFields();
