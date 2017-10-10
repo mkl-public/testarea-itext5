@@ -7,6 +7,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import com.itextpdf.text.pdf.PdfReader;
+import com.itextpdf.text.pdf.RandomAccessFileOrArray;
 
 /**
  * @author mkl
@@ -55,6 +56,30 @@ public class OpenFile
         {
             PdfReader pdfReader = new PdfReader(resource);
             Assert.assertEquals("", "Jigyasu", pdfReader.getInfo().get("Author"));
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/46663640/itext-pdf-fails-with-message-dictionary-key-endstream-is-not-a-name">
+     * iText PDF fails with message “Dictionary key endstream is not a name”
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/s/xz77curzkigod0k/itext_banner_InvalidPdfException.pdf">
+     * itext_banner_InvalidPdfException.pdf
+     * </a>
+     * <p>
+     * There is a syntax error inside one of the objects of the PDF.
+     * As this object is referenced from no other object, though, it
+     * is ignored if the PDF is read in partial mode.
+     * </p>
+     */
+    @Test
+    public void testItextBannerInvalidPdfException() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("itext_banner_InvalidPdfException.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(new RandomAccessFileOrArray(resource), null);
+            Assert.assertEquals("", "GraphicsMagick 1.3.26 2017-07-04 Q16 http://www.GraphicsMagick.org/", pdfReader.getInfo().get("Producer"));
         }
     }
 }
