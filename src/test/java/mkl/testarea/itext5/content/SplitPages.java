@@ -124,4 +124,35 @@ public class SplitPages {
             tool.split(result, new PdfReader(resource));
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/46466747/how-to-split-a-pdf-page-in-java">
+     * How to split a PDF page in java?
+     * </a>
+     * <p>
+     * This test shows how to split the pages of a document into tiles of A6
+     * size using the {@link Abstract2DPdfPageSplittingTool}.
+     * </p>
+     */
+    @Test
+    public void testSplitDocumentA6() throws IOException, DocumentException {
+        try (InputStream resource = getClass().getResourceAsStream("document.pdf");
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "document-A6.pdf"))) {
+            Abstract2DPdfPageSplittingTool tool = new Abstract2DPdfPageSplittingTool() {
+                @Override
+                protected Iterable<Rectangle> determineSplitRectangles(PdfReader reader, int page) {
+                    Rectangle targetSize = PageSize.A6;
+                    List<Rectangle> rectangles = new ArrayList<>();
+                    Rectangle pageSize = reader.getPageSize(page);
+                    for (float y = pageSize.getTop(); y > pageSize.getBottom() + 5; y-=targetSize.getHeight()) {
+                        for (float x = pageSize.getLeft(); x < pageSize.getRight() - 5; x+=targetSize.getWidth()) {
+                            rectangles.add(new Rectangle(x, y - targetSize.getHeight(), x + targetSize.getWidth(), y));
+                        }
+                    }
+                    return rectangles;
+                }
+            };
+            tool.split(result, new PdfReader(resource));
+        }
+    }
 }
