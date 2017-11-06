@@ -41,7 +41,7 @@ public class PercentileCellBackground implements PdfPCellEvent {
         canvas.saveState();
         canvas.setShadingFill(shading);
         canvas.rectangle(position.getLeft(), position.getBottom(), position.getWidth(), position.getHeight());
-        canvas.clip();
+//        canvas.clip();
         canvas.fill();
         canvas.restoreState();
     }

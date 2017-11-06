@@ -1,16 +1,25 @@
 // $Id$
 package mkl.testarea.itext5.extract;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.itextpdf.text.pdf.PRIndirectReference;
+import com.itextpdf.text.pdf.PRStream;
+import com.itextpdf.text.pdf.PdfDictionary;
+import com.itextpdf.text.pdf.PdfName;
+import com.itextpdf.text.pdf.PdfObject;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.ImageRenderInfo;
+import com.itextpdf.text.pdf.parser.PdfImageObject;
 import com.itextpdf.text.pdf.parser.PdfImageObject.ImageBytesType;
 import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
 import com.itextpdf.text.pdf.parser.RenderListener;
@@ -84,4 +93,96 @@ public class ImageExtraction
         }        
     }
 
+    /**
+     * <a href="https://stackoverflow.com/questions/47101222/how-to-decode-image-with-asciihexdecode">
+     * How to decode image with /ASCIIHexDecode
+     * </a>
+     * <br/>
+     * <a href="https://1drv.ms/b/s!AjcEvFO-aWLMkbtXNVl_rmUXv6nnBQ">
+     * test.pdf
+     * </a>
+     * <p>
+     * The issue can be reproduced. Without studying the format
+     * of the integrated image in detail, though, it is hard to
+     * tell whether this is a bug in iText or a bug in the PDF.
+     * </p>
+     */
+    @Test
+    public void testExtractImageLikeSteveB() throws IOException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("testSteveB.pdf")) {
+            PdfReader reader = new PdfReader(resource);
+            for (int pageNumber = 1; pageNumber <= reader.getNumberOfPages(); pageNumber++)
+            {
+                PdfDictionary dictionary = reader.getPageN(pageNumber);
+                FindImages(reader, dictionary);
+            }
+        }
+    }
+
+    /**
+     * @see #testExtractImageLikeSteveB()
+     */
+    private static List<BufferedImage> FindImages(PdfReader reader, PdfDictionary pdfPage) throws IOException
+    {
+        List<BufferedImage> result = new ArrayList<>(); 
+        Iterable<PdfObject> imgPdfObject = FindImageInPDFDictionary(pdfPage);
+        for (PdfObject image : imgPdfObject)
+        {
+            int xrefIndex = ((PRIndirectReference)image).getNumber();
+            PdfObject stream = reader.getPdfObject(xrefIndex);
+            // Exception occurs here :
+            PdfImageObject pdfImage = new PdfImageObject((PRStream)stream);
+            BufferedImage img = pdfImage.getBufferedImage();
+
+            // Do something with the image
+            result.add(img);
+        }
+        return result;
+    }
+
+    /**
+     * @see #testExtractImageLikeSteveB()
+     */
+    private static Iterable<PdfObject> FindImageInPDFDictionary(PdfDictionary pg)
+    {
+        PdfDictionary res = (PdfDictionary)PdfReader.getPdfObject(pg.get(PdfName.RESOURCES));
+        PdfDictionary xobj = (PdfDictionary)PdfReader.getPdfObject(res.get(PdfName.XOBJECT));
+
+        List<PdfObject> result = new ArrayList<>();
+        if (xobj != null)
+        {
+            for (PdfName name : xobj.getKeys())
+            {
+                PdfObject obj = xobj.get(name);
+                if (obj.isIndirect())
+                {
+                    PdfDictionary tg = (PdfDictionary)PdfReader.getPdfObject(obj);
+
+                    PdfName type = (PdfName)PdfReader.getPdfObject(tg.get(PdfName.SUBTYPE));
+
+                    //image at the root of the pdf
+                    if (PdfName.IMAGE.equals(type))
+                    {
+                        result.add(obj);
+                    }// image inside a form
+                    else if (PdfName.FORM.equals(type))
+                    {
+                        for (PdfObject nestedObj : FindImageInPDFDictionary(tg))
+                        {
+                            result.add(nestedObj);
+                        }
+                    } //image inside a group
+                    else if (PdfName.GROUP.equals(type))
+                    {
+                        for (PdfObject nestedObj : FindImageInPDFDictionary(tg))
+                        {
+                            result.add(nestedObj);
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
 }
