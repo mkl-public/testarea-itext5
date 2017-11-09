@@ -82,4 +82,27 @@ public class OpenFile
             Assert.assertEquals("", "GraphicsMagick 1.3.26 2017-07-04 Q16 http://www.GraphicsMagick.org/", pdfReader.getInfo().get("Producer"));
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/47185650/rebuild-failed-trailer-not-found-error-during-pdf-merge-with-itext-for-java">
+     * Rebuild failed: trailer not found error during PDF merge with iText for Java
+     * </a>
+     * <br/>
+     * <a href="https://www.centralbank.ie/docs/default-source/news-and-media/legal-notices/settlement-agreements/public-statement-relating-to-settlement-agreement-between-the-central-bank-of-ireland-and-aviva-life-and-pensions-ireland-limited.pdf">
+     * public-statement-relating-to-settlement-agreement-between-the-central-bank-of-ireland-and-aviva-life-and-pensions-ireland-limited.pdf 
+     * </a>
+     * <p>
+     * Cannot reproduce the issue.
+     * </p>
+     */
+    @Test
+    public void testPublicStatementRelatingToSettlementAgreementBetweenTheCentralBankOfIrelandAndAvivaLifeAndPensionsIrelandLimited() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("public-statement-relating-to-settlement-agreement-between-the-central-bank-of-ireland-and-aviva-life-and-pensions-ireland-limited.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+            Assert.assertEquals("", "mcreane2", pdfReader.getInfo().get("Author"));
+        }
+    }
+
 }
