@@ -105,4 +105,28 @@ public class OpenFile
         }
     }
 
+    /**
+     * <a href="https://stackoverflow.com/questions/47547416/slow-instantiation-of-itextsharp-pdfreader">
+     * Slow instantiation of itextsharp pdfreader
+     * </a>
+     * <br/>
+     * <a href="https://a.uguu.se/SAwzwnZoiGtD.pdf">
+     * SAwzwnZoiGtD.pdf
+     * </a>
+     * <p>
+     * That sample document is broken. Its main cross reference section claims
+     * it has 37 entries but it actually only has 35 entries... iText, therefore,
+     * attempts to reconstruct cross references during loading. This may be the
+     * reason for a certain slowness.
+     * </p>
+     */
+    @Test
+    public void testSAwzwnZoiGtD() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("SAwzwnZoiGtD.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+            Assert.assertEquals("", "COB Srl", pdfReader.getInfo().get("Author"));
+        }
+    }
 }
