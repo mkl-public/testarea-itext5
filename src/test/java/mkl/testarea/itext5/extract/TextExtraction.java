@@ -657,6 +657,43 @@ public class TextExtraction
     }
 
     /**
+     * <a href="https://stackoverflow.com/questions/47869635/extract-text-from-pdf-using-itextsharp-returns-empty-string">
+     * Extract text from pdf using itextsharp returns empty string
+     * </a>
+     * <br/>
+     * <a href="https://smlouvy.gov.cz/smlouva/soubor/5376672/Smlouva%20Z%C5%A0%20Komensk%C3%A9ho%2066%20NJ%20-%20pron%C3%A1jem%20u%C4%8Debny.pdf">
+     * Smlouva ZŠ Komenského 66 NJ - pronájem učebny.pdf
+     * </a>
+     * <p>
+     * The PDF itself is weird to start with: It appears to have been OCR'ed
+     * ignoring the page rotation, i.e. effectively with the content rotated
+     * by 180°, so the recognized text is weird. But there also is an issue
+     * of iText: It does not properly extract the so recognized text. This
+     * probably is due to the font of the text not having a ToUnicode map
+     * and furthermore having a mixed single-byte/double-byte encoding.
+     * </p>
+     */
+    @Test
+    public void testSmlouvaZSKomenskeho66NJpronajemucebny() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("Smlouva ZŠ Komenského 66 NJ - pronájem učebny.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            String content = extractAndStoreSimple(reader, new File(RESULT_FOLDER, "Smlouva ZŠ Komenského 66 NJ - pronájem učebny.%s.txt").toString());
+
+            System.out.println("\nText (simple strategy) Smlouva ZŠ Komenského 66 NJ - pronájem učebny.pdf \n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
+    }
+
+    /**
      * <a href="http://stackoverflow.com/questions/37307289/text-from-pdf-parsing-differently-using-itext">
      * Text from PDF parsing differently using iText
      * </a>
