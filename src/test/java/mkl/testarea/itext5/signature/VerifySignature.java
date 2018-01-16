@@ -299,4 +299,43 @@ public class VerifySignature
 
         System.out.println();
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/48285453/verifying-certificate-of-signed-and-secured-pdf-in-itext-pdf-java">
+     * Verifying certificate of signed and secured PDF in iText PDF Java
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/drive/folders/1KAqHUh-Iij0I4WXJUCx-rMd8FQFq5tCe?usp=sharing">
+     * pdf-sample-signed.pdf
+     * </a>
+     * <p>
+     * The PDF is both signed and encrypted. Apparently iText "decrypts" the
+     * values of the <b>Contents</b> key in signature dictionaries even though
+     * this is an explicit exception. The parsing of this "decrypted" signature
+     * container obviously fails.
+     * </p>
+     */
+    @Test
+    public void testVerifyPdfSampleSigned() throws IOException, GeneralSecurityException
+    {
+        System.out.println("\n\npdf-sample-signed.pdf\n===================");
+        
+        try (   InputStream resource = getClass().getResourceAsStream("pdf-sample-signed.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource, "password".getBytes());
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
 }
