@@ -269,6 +269,7 @@ public class VerifySignature
      * <p>
      * Adding a mapping "1.2.840.10045.4.3.2" to "ECDSA" resolves the issue.
      * </p>
+     * @see #testVerify20180115an_signed_original()
      */
     @Test
     public void testVerifyTestDsp() throws IOException, GeneralSecurityException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
@@ -323,6 +324,49 @@ public class VerifySignature
         try (   InputStream resource = getClass().getResourceAsStream("pdf-sample-signed.pdf") )
         {
             PdfReader reader = new PdfReader(resource, "password".getBytes());
+            AcroFields acroFields = reader.getAcroFields();
+
+            List<String> names = acroFields.getSignatureNames();
+            for (String name : names) {
+               System.out.println("Signature name: " + name);
+               System.out.println("Signature covers whole document: " + acroFields.signatureCoversWholeDocument(name));
+               System.out.println("Document revision: " + acroFields.getRevision(name) + " of " + acroFields.getTotalRevisions());
+               PdfPKCS7 pk = acroFields.verifySignature(name);
+               System.out.println("Subject: " + CertificateInfo.getSubjectFields(pk.getSigningCertificate()));
+               System.out.println("Document verifies: " + pk.verify());
+            }
+        }
+
+        System.out.println();
+    }
+
+    /**
+     * <a href="https://github.com/itext/itextpdf/pull/36">
+     * Adding Support for OID 1.2.840.113549.1.1.10 #36
+     * </a>
+     * <br/>
+     * <a href="https://github.com/itext/itextpdf/files/1641593/2018.01.15.an_signed_original.pdf">
+     * 2018.01.15.an_signed_original.pdf
+     * </a>
+     * <p>
+     * Support for RSASSA-PSS can also be injected using reflection as done here. 
+     * </p>
+     * @see #testVerifyTestDsp()
+     */
+    @Test
+    public void testVerify20180115an_signed_original() throws IOException, GeneralSecurityException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
+    {
+        Field algorithmNamesField = EncryptionAlgorithms.class.getDeclaredField("algorithmNames");
+        algorithmNamesField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        HashMap<String, String> algorithmNames = (HashMap<String, String>) algorithmNamesField.get(null);
+        algorithmNames.put("1.2.840.113549.1.1.10", "RSAandMGF1");
+
+        System.out.println("\n\n2018.01.15.an_signed_original.pdf\n===================");
+        
+        try (   InputStream resource = getClass().getResourceAsStream("2018.01.15.an_signed_original.pdf") )
+        {
+            PdfReader reader = new PdfReader(resource);
             AcroFields acroFields = reader.getAcroFields();
 
             List<String> names = acroFields.getSignatureNames();
