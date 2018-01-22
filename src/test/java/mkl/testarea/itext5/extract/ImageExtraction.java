@@ -185,4 +185,49 @@ public class ImageExtraction
         }
         return result;
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/48355703/how-to-decode-a-pdfimageobject-with-filter-flatedecode-runlengthdecode">
+     * How to decode a PdfImageObject with filter “[/FlateDecode, /RunLengthDecode]”
+     * </a>
+     * <br/>
+     * <a href="http://www.jpproducties.nl/content/Example.pdf">
+     * Example.pdf
+     * </a>
+     * <p>
+     * Indeed, the issue can be reproduced, it is due to an off-by-one
+     * error in the <b>RunLengthDecode</b> filter implementation.
+     * </p>
+     */
+    @Test
+    public void testExtractImageFromJohnVanDePolsExample() throws IOException
+    {
+        RenderListener listener = new RenderListener()
+        {
+            public void beginTextBlock() { }
+            public void endTextBlock() { }
+            public void renderText(TextRenderInfo renderInfo) { }
+
+            public void renderImage(ImageRenderInfo renderInfo) {
+                try {
+                    PdfImageObject imageObject = renderInfo.getImage();
+                    if (imageObject == null)
+                        System.out.printf("Image %s could not be read.", renderInfo.getRef().getNumber());
+                    else
+                        Files.write(new File(RESULT_FOLDER, String.format("Example-%s.%s", renderInfo.getRef().getNumber(), imageObject.getFileType())).toPath(), imageObject.getImageAsBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        try (InputStream resource = getClass().getResourceAsStream("Example.pdf")) {
+            PdfReader reader = new PdfReader(resource);
+            PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+            for (int pageNumber = 1; pageNumber <= reader.getNumberOfPages(); pageNumber++)
+            {
+                parser.processContent(pageNumber, listener);
+            }
+        }
+    }
 }
