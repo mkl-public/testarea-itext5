@@ -6,7 +6,7 @@
 	<artifactId>testarea-itext5</artifactId>
 	<packaging>jar</packaging>
 	<name>Test area for public iText v5 issues on stackoverflow etc</name>
-	<version>5.5.13</version>
+	<version>5.5.14-SNAPSHOT</version>
 
 	<build>
 		<plugins>
@@ -24,7 +24,7 @@
 
   <properties>
     <junit.version>4.7</junit.version>
-    <itextpdf.version>5.5.13</itextpdf.version>
+    <itextpdf.version>${project.version}</itextpdf.version>
   </properties>
 	<dependencies>
 		<dependency>
