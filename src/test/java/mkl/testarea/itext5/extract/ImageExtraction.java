@@ -230,4 +230,48 @@ public class ImageExtraction
             }
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/49726774/itext-pdf-outputs-devicecmyk-image-very-dark">
+     * iText PDF outputs DeviceCMYK image very dark
+     * </a>
+     * <br/>
+     * <a href="http://www.visibility911.org/downloads/media/thermite-fingerprint.pdf">
+     * thermite-fingerprint.pdf
+     * </a>
+     * <p>
+     * Indeed, the issue can be reproduced.
+     * </p>
+     */
+    @Test
+    public void testExtractImageFromThermiteFingerprint() throws IOException
+    {
+        RenderListener listener = new RenderListener()
+        {
+            public void beginTextBlock() { }
+            public void endTextBlock() { }
+            public void renderText(TextRenderInfo renderInfo) { }
+
+            public void renderImage(ImageRenderInfo renderInfo) {
+                try {
+                    PdfImageObject imageObject = renderInfo.getImage();
+                    if (imageObject == null)
+                        System.out.printf("Image %s could not be read.", renderInfo.getRef().getNumber());
+                    else
+                        Files.write(new File(RESULT_FOLDER, String.format("thermite-fingerprint-%s.%s", renderInfo.getRef().getNumber(), imageObject.getFileType())).toPath(), imageObject.getImageAsBytes());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        };
+
+        try (InputStream resource = getClass().getResourceAsStream("thermite-fingerprint.pdf")) {
+            PdfReader reader = new PdfReader(resource);
+            PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+            for (int pageNumber = 1; pageNumber <= reader.getNumberOfPages(); pageNumber++)
+            {
+                parser.processContent(pageNumber, listener);
+            }
+        }
+    }
 }
