@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -478,5 +479,69 @@ public class CreateSignature
             ExternalDigest digest = new BouncyCastleDigest();
             MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
         }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/49861696/delete-padding-of-rectangle-in-itext-pdf-signature">
+     * Delete padding of Rectangle in iText PDF signature
+     * </a>
+     * <p>
+     * The overlapping-rectangles issue can be resolved by choosing
+     * rectangle coordinates in a non-overlapping manner, cf.
+     * {@link #tuneAppearanceLikeJoseJavierHernándezBenítez(PdfSignatureAppearance, int, String)}.
+     * The other issue, the free space at the top, can be resolved
+     * as shown in the test {@link #signWithCustomLayer2()} above.
+     * </p>
+     */
+    @Test
+    public void signInSmallRectangles() throws IOException, DocumentException, GeneralSecurityException {
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        try (   InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                OutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "smallRectangles1.pdf"))) {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+
+            PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            appearance.setReason("reason");
+            appearance.setLocation("location");
+            tuneAppearanceLikeJoseJavierHernándezBenítez(appearance, 1, "Sig1");
+
+            ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+            ExternalDigest digest = new BouncyCastleDigest();
+            MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
+        }
+
+
+        try (   InputStream is = new FileInputStream(new File(RESULT_FOLDER, "smallRectangles1.pdf"));
+                OutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "smallRectangles2.pdf"))) {
+            PdfReader reader = new PdfReader(is);
+            PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0', RESULT_FOLDER, true);
+
+            PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            appearance.setReason("reason");
+            appearance.setLocation("location");
+            tuneAppearanceLikeJoseJavierHernándezBenítez(appearance, 2, "Sig2");
+
+            ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+            ExternalDigest digest = new BouncyCastleDigest();
+            MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
+        }
+    }
+
+    // @see #signInSmallRectangles()
+    void tuneAppearanceLikeJoseJavierHernándezBenítez(PdfSignatureAppearance signatureAppearance, int next, String contact) {
+        signatureAppearance.setRenderingMode(PdfSignatureAppearance.RenderingMode.DESCRIPTION);
+        Rectangle rectangle = new Rectangle(
+                        36,
+                        760 - 20 * (next - 1) , // this is one possible correction of the original: 748 - 20 * (next - 1) ,
+                        144,
+                        780 - 20 * (next - 1)
+            );
+        rectangle.normalize();
+        signatureAppearance.setVisibleSignature(
+                rectangle, 
+                1, contact);
     }
 }
