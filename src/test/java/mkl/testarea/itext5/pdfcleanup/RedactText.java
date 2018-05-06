@@ -491,4 +491,38 @@ public class RedactText
             reader.close();
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/38240692/error-in-redaction-with-itext-5-the-color-depth-1-is-not-supported-exception">
+     * Error in redaction with iText 5: “The color depth 1 is not supported.” exception when apply redaction on pdf which contain image also
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/0B42NqA5UnXMVbkhQQk9tR2hpSUE/view?pref=2&pli=1">
+     * Pages from Miscellaneous_corrupt.pdf
+     * </a>
+     * <p>
+     * In iText 5.5.11 a work-around for this issue has been added to iText, images in
+     * formats not explicitly supported by itext are now removed as a whole if they
+     * intersect a redaction area.
+     * </p>
+     */
+    @Test
+    public void testRedactLikeMayankPandeyPagesfromMiscellaneous_corrupt() throws IOException, DocumentException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("Pages from Miscellaneous_corrupt.pdf");
+                OutputStream result = new FileOutputStream(new File(OUTPUTDIR, "Pages from Miscellaneous_corrupt-redacted.pdf")) )
+        {
+            PdfReader reader = new PdfReader(resource);
+            PdfCleanUpProcessor cleaner= null;
+            PdfStamper stamper = new PdfStamper(reader, result);
+            stamper.setRotateContents(false);
+            List<PdfCleanUpLocation> cleanUpLocations = new ArrayList<PdfCleanUpLocation>();
+            Rectangle rectangle = new Rectangle(190, 320, 430, 665);
+            cleanUpLocations.add(new PdfCleanUpLocation(1, rectangle, BaseColor.BLACK));
+            cleaner = new PdfCleanUpProcessor(cleanUpLocations, stamper);   
+            cleaner.cleanUp();
+            stamper.close();
+            reader.close();
+        }
+    }
 }
