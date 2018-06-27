@@ -2,11 +2,19 @@ package mkl.testarea.signature.analyze;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
+import java.security.MessageDigest;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
 import java.util.Map;
 
+import javax.crypto.Cipher;
+
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
+import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1TaggedObject;
 import org.bouncycastle.asn1.cms.Attribute;
@@ -15,6 +23,7 @@ import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.ocsp.OCSPResponse;
 import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x509.DigestInfo;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
@@ -27,6 +36,7 @@ import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedData;
 import org.bouncycastle.cms.SignerId;
 import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtil;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -48,13 +58,8 @@ import org.bouncycastle.util.Store;
 public class SignatureAnalyzer
 {
     private DigestCalculatorProvider digCalcProvider = new BcDigestCalculatorProvider();
-    /**
-     * @throws IOException 
-     * @throws TSPException 
-     * @throws OperatorCreationException 
-     * 
-     */
-    public SignatureAnalyzer(byte[] signatureData) throws CMSException, IOException, TSPException, OperatorCreationException
+
+    public SignatureAnalyzer(byte[] signatureData) throws CMSException, IOException, TSPException, OperatorCreationException, GeneralSecurityException
     {
         signedData = new CMSSignedData(signatureData);
         
@@ -94,14 +99,14 @@ public class SignatureAnalyzer
             Collection certs = certificates.getMatches(new SignerId(signerInfo.getSID().getIssuer(), signerInfo.getSID().getSerialNumber()));
             
             System.out.print("Certificate: ");
-            
+            X509CertificateHolder cert = null;
             if (certs.size() != 1)
             {
                 System.out.printf("Could not identify, %s candidates\n", certs.size());
             }
             else
             {
-                X509CertificateHolder cert = (X509CertificateHolder) certs.iterator().next();
+                cert = (X509CertificateHolder) certs.iterator().next();
                 System.out.printf("%s\n", cert.getSubject());
             }
 
@@ -199,6 +204,20 @@ public class SignatureAnalyzer
                 else if (attributeEntry.getKey().equals(PKCSObjectIdentifiers.pkcs_9_at_messageDigest))
                 {
                     System.out.println(" (PKCS 9 - Message Digest)");
+                    Attribute attribute = (Attribute) attributeEntry.getValue();
+                    ASN1Encodable[] values = attribute.getAttributeValues();
+                    if (values == null || values.length == 0)
+                        System.out.println("!!! No Message Digest value");
+                    else {
+                        if (values.length > 1)
+                            System.out.println("!!! Multiple Message Digest values");
+                        for (ASN1Encodable value : values) {
+                            if (value instanceof ASN1OctetString)
+                                System.out.printf("Digest: %s\n", toHex(((ASN1OctetString)value).getOctets()));
+                            else
+                                System.out.println("!!! Invalid Message Digest value type " + value.getClass());
+                        }
+                    }
                 }
                 else if (attributeEntry.getKey().equals(PKCSObjectIdentifiers.id_aa_signingCertificateV2))
                 {
@@ -210,7 +229,30 @@ public class SignatureAnalyzer
                 }
 
                 System.out.println();
-            }            
+            }
+
+            byte[] signedAttributeBytes = signerInfo.getEncodedSignedAttributes();
+            MessageDigest md = MessageDigest.getInstance(signerInfo.getDigestAlgOID());
+            byte[] signedAttributeHash = md.digest(signedAttributeBytes);
+            String signedAttributeHashString = toHex(signedAttributeHash);
+            System.out.printf("Signed Attributes Hash: %s\n", signedAttributeHashString);
+            System.out.printf("Signed Attributes Hash Hash: %s\n", toHex(md.digest(signedAttributeHash)));
+
+            if (cert != null) {
+                if (RSAUtil.isRsaOid(cert.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm())) {
+                    KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
+                    Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/PKCS1Padding"); // NoPadding
+
+                    PublicKey publicKey = rsaKeyFactory.generatePublic(new X509EncodedKeySpec(cert.getSubjectPublicKeyInfo().getEncoded()));
+                    cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
+                    byte[] bytes = cipherNoPadding.doFinal(signerInfo.getSignature());
+                    DigestInfo digestInfo = DigestInfo.getInstance(bytes);
+                    String digestString = toHex(digestInfo.getDigest());
+                    System.out.printf("Signature digest: %s\n", digestString);
+                    if (!digestString.equals(signedAttributeHashString))
+                        System.out.println("!!! Decrypted RSA signature does not end with signed attributes hash");
+                }
+            }
 
             AttributeTable attributeTable = signerInfo.getUnsignedAttributes();
             if (attributeTable != null)

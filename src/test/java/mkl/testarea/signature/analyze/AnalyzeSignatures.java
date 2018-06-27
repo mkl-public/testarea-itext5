@@ -2,6 +2,7 @@ package mkl.testarea.signature.analyze;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.security.GeneralSecurityException;
 
 import org.apache.commons.io.IOUtils;
 import org.bouncycastle.cms.CMSException;
@@ -40,7 +41,7 @@ public class AnalyzeSignatures
      * </p>
      */
     @Test
-    public void testAGDevSignatureWithTimeStamp() throws IOException, CMSException, TSPException, OperatorCreationException
+    public void testAGDevSignatureWithTimeStamp() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
     {
         try (InputStream resource = getClass().getResourceAsStream("PDFSigned.pdf.Signature1.raw"))
         {
@@ -65,7 +66,7 @@ public class AnalyzeSignatures
      * </p>
      */
     @Test
-    public void testTonnySignature() throws IOException, CMSException, TSPException, OperatorCreationException
+    public void testTonnySignature() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
     {
         try (InputStream resource = getClass().getResourceAsStream("test_signed.pdf.Signature1.raw"))
         {
@@ -90,9 +91,37 @@ public class AnalyzeSignatures
      * </p>
      */
     @Test
-    public void testKe20Signature() throws IOException, CMSException, TSPException, OperatorCreationException
+    public void testKe20Signature() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
     {
         try (InputStream resource = getClass().getResourceAsStream("corrupted-sign-file.pdf.Signature2.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/51031446/c-sharp-pkcs7-smartcard-digital-signature-document-has-been-altered-or-corrupt">
+     * C# PKCS7 Smartcard Digital Signature - Document has been altered or corrupted since it was signed
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/1I6hUO8B3fnkgws9Pk1Puti9HjkRJE0Rq/view?usp=sharing">
+     * signedpdf.pdf
+     * </a>,
+     * the signature being extracted as "signedpdf.pdf.dsa.raw".
+     * 
+     * <p>
+     * As it turns out, the signature DigestInfo object contains the
+     * hash of the hash of the signed attributes, not simply the
+     * hash of the signed attributes, i.e. the signed attributes
+     * incorrectly are hashed twice.
+     * </p>
+     */
+    @Test
+    public void testSotnSignature() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("signedpdf.pdf.dsa.raw"))
         {
             byte[] signatureBytes = IOUtils.toByteArray(resource);
             
