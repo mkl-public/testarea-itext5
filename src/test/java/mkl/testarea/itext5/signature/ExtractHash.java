@@ -29,6 +29,8 @@ import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.RandomAccessFileOrArray;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 
+import mkl.testarea.signature.analyze.AnalyzeSignatures;
+
 /**
  * <a href="http://stackoverflow.com/questions/29939831/obtaining-the-hash-digest-from-a-pcks7-signed-pdf-file-with-itext">
  * Obtaining the hash/digest from a PCKS7 signed PDF file with iText
@@ -84,6 +86,36 @@ public class ExtractHash
             System.out.println("signed_file.pdf");
             PdfReader reader = new PdfReader(resource);
             extractHashes(reader, "signed_file-%s%s.hash");
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/51031446/c-sharp-pkcs7-smartcard-digital-signature-document-has-been-altered-or-corrupt">
+     * C# PKCS7 Smartcard Digital Signature - Document has been altered or corrupted since it was signed
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/1I6hUO8B3fnkgws9Pk1Puti9HjkRJE0Rq/view?usp=sharing">
+     * signedpdf.pdf
+     * </a>
+     * <p>
+     * The document hash is correct.
+     * </p>
+     * <p>
+     * As it later turns out, the signature DigestInfo object contains the
+     * hash of the hash of the signed attributes, not simply the hash of
+     * the signed attributes, i.e. the signed attributes incorrectly are
+     * hashed twice.
+     * </p>
+     * @see AnalyzeSignatures#testSotnSignature()
+     */
+    @Test
+    public void testSotnSignedpdf() throws IOException, GeneralSecurityException, NoSuchFieldException, SecurityException, IllegalArgumentException, IllegalAccessException
+    {
+        try (   InputStream resource = getClass().getResourceAsStream("signedpdf.pdf")   )
+        {
+            System.out.println("signedpdf.pdf");
+            PdfReader reader = new PdfReader(resource);
+            extractHashes(reader, "signedpdf-%s%s.hash");
         }
     }
 
