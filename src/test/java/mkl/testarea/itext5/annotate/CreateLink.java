@@ -3,29 +3,32 @@ package mkl.testarea.itext5.annotate;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import com.itextpdf.awt.geom.AffineTransform;
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BaseColor;
+import com.itextpdf.text.Chunk;
 import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
+import com.itextpdf.text.Image;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfAnnotation;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfGState;
-import com.itextpdf.text.pdf.PdfIndirectReference;
 import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfPCell;
+import com.itextpdf.text.pdf.PdfPCellEvent;
 import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfStream;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 
@@ -157,5 +160,73 @@ public class CreateLink
 
         doc.open();
         doc.close();
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/51364373/add-hyperlink-inside-a-cell-event-in-itext">
+     * Add hyperlink inside a cell event in itext
+     * </a>
+     * <p>
+     * This test shows that the {@link AddHyperLink} cell event listener of
+     * the OP does work if given a large enough cell to work in.
+     * </p>
+     */
+    @Test
+    public void testCreateLinkInCellEvent() throws IOException, DocumentException {
+        try (InputStream imageStream = getClass().getResourceAsStream("/mkl/testarea/itext5/layer/Willi-1.jpg "))
+        {
+            Image image = Image.getInstance(IOUtils.toByteArray(imageStream));
+            image.scaleToFit(110,110);
+
+            Document doc = new Document();
+            PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(new File(RESULT_FOLDER, "link-in-cell-event.pdf")));
+            writer.setCompressionLevel(0);
+            doc.open();
+
+            PdfPTable table = new PdfPTable(1);
+            PdfPCell cell = new PdfPCell(image);
+            cell.setCellEvent(new AddHyperLink());
+
+            table.addCell(cell);
+            doc.add(table);
+
+            doc.close();
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/51364373/add-hyperlink-inside-a-cell-event-in-itext">
+     * Add hyperlink inside a cell event in itext
+     * </a>
+     * <p>
+     * The original code of the OP with the obvious correction.
+     * The test {@link CreateLink#testCreateLinkInCellEvent()} shows that it works.
+     * </p>
+     */
+    private static class AddHyperLink implements PdfPCellEvent {
+
+        public void cellLayout(PdfPCell cell, Rectangle position, PdfContentByte[] canvases) {
+
+            Paragraph mainPragraph = new Paragraph();
+            Chunk descCk = new Chunk("This is ");
+
+            mainPragraph.add(descCk);
+            Chunk orgDiscriptionMore = new Chunk("HyperLink");
+            orgDiscriptionMore.setAnchor("http:/www.google.com");
+            mainPragraph.add(orgDiscriptionMore);
+
+            PdfContentByte canvas = canvases[PdfPTable.TEXTCANVAS];
+            ColumnText ct = new ColumnText(canvas);
+
+            ct.setSimpleColumn(position);
+            ct.addElement(mainPragraph);
+
+            try {
+                ct.go();
+            } catch (DocumentException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
     }
 }
