@@ -44,6 +44,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.provider.X509CertParser;
 import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.OperatorException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.x509.util.StreamParsingException;
 import org.junit.BeforeClass;
@@ -131,6 +132,35 @@ public class MakeLtvEnabled {
             OcspClient ocsp = new OcspClientBouncyCastle();
             CrlClient crl = new CrlClientOnline();
             makeLtvEnabledV2(pdfStamper, ocsp, crl);
+
+            pdfStamper.close();
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/51370965/how-can-i-add-pades-ltv-using-itext">
+     * how can I add PAdES-LTV using itext
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/18xiNeLZG0jcz3HGxa5qAug3szpRuJqvw/view?usp=sharing">
+     * sign_without_LTV.pdf
+     * </a>
+     * <p>
+     * This tests the {@link AdobeLtvEnabling} utility class. The current Adobe Reader accepts
+     * the output as LTV enabled after trusting the root certificate of the signer chain.
+     * </p>
+     */
+    @Test
+    public void testV3() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException {
+        try (   InputStream resource = getClass().getResourceAsStream("sign_without_LTV.pdf");
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "sign_with_LTV_V3.pdf"))) {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper pdfStamper = new PdfStamper(pdfReader, result, (char)0, true);
+
+            AdobeLtvEnabling adobeLtvEnabling = new AdobeLtvEnabling(pdfStamper);
+            OcspClient ocsp = new OcspClientBouncyCastle();
+            CrlClient crl = new CrlClientOnline();
+            adobeLtvEnabling.enable(ocsp, crl);
 
             pdfStamper.close();
         }
