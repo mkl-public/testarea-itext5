@@ -20,7 +20,6 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiConsumer;
 
 import org.bouncycastle.asn1.ASN1EncodableVector;
 import org.bouncycastle.asn1.ASN1Enumerated;
@@ -86,12 +85,13 @@ public class AdobeLtvEnabling {
         this.pdfStamper = pdfStamper;
     }
 
+    /**
+     * Call this method to have LTV information added to the {@link PdfStamper}
+     * given in the constructor.
+     */
     public void enable(OcspClient ocspClient, CrlClient crlClient) throws OperatorException, GeneralSecurityException, IOException, StreamParsingException, OCSPException {
-        pdfStamper.getWriter().addDeveloperExtension(new PdfDeveloperExtension(PdfName.ADBE, new PdfName("1.7"), 8));
         AcroFields fields = pdfStamper.getAcroFields();
         boolean encrypted = pdfStamper.getReader().isEncrypted();
-
-        Map<PdfName, X509Certificate> moreToCheck = new HashMap<>();
 
         ArrayList<String> names = fields.getSignatureNames();
         for (String name : names)
@@ -102,14 +102,8 @@ public class AdobeLtvEnabling {
             certificatesToCheck.add(pdfPKCS7.getSigningCertificate());
             while (!certificatesToCheck.isEmpty()) {
                 X509Certificate certificate = certificatesToCheck.remove(0);
-                addLtvForChain(certificate, ocspClient, crlClient, getSignatureHashKey(signatureDictionary, encrypted), moreToCheck::put);
+                addLtvForChain(certificate, ocspClient, crlClient, getSignatureHashKey(signatureDictionary, encrypted));
             }
-        }
-
-        while (!moreToCheck.isEmpty()) {
-            PdfName key = moreToCheck.keySet().iterator().next();
-            X509Certificate certificate = moreToCheck.remove(key);
-            addLtvForChain(certificate, ocspClient, crlClient, key, moreToCheck::put);
         }
 
         outputDss();
@@ -118,8 +112,7 @@ public class AdobeLtvEnabling {
     //
     // the actual LTV enabling methods
     //
-    void addLtvForChain(X509Certificate certificate, OcspClient ocspClient, CrlClient crlClient, PdfName key,
-            BiConsumer<PdfName, X509Certificate> moreSignersAndCertificates) throws GeneralSecurityException, IOException, StreamParsingException, OperatorCreationException, OCSPException {
+    void addLtvForChain(X509Certificate certificate, OcspClient ocspClient, CrlClient crlClient, PdfName key) throws GeneralSecurityException, IOException, StreamParsingException, OperatorCreationException, OCSPException {
         ValidationData validationData = new ValidationData();
 
         while (certificate != null) {
@@ -134,14 +127,14 @@ public class AdobeLtvEnabling {
                 if (ocspSigner != null) {
                     System.out.printf("  signed by %s\n", ocspSigner.getSubjectX500Principal().getName());
                 }
-                moreSignersAndCertificates.accept(getOcspSignatureKey(ocspResponse), ocspSigner);
+                addLtvForChain(ocspSigner, ocspClient, crlClient, getOcspHashKey(ocspResponse));
             } else {
                Collection<byte[]> crl = crlClient.getEncoded(certificate, null);
                if (crl != null && !crl.isEmpty()) {
                    System.out.printf("  with %s CRLs\n", crl.size());
                    validationData.crls.addAll(crl);
                    for (byte[] crlBytes : crl) {
-                       moreSignersAndCertificates.accept(getCrlSignatureKey(crlBytes), null);
+                       addLtvForChain(null, ocspClient, crlClient, getCrlHashKey(crlBytes));
                    }
                }
             }
@@ -155,7 +148,6 @@ public class AdobeLtvEnabling {
         PdfWriter writer = pdfStamper.getWriter();
         PdfReader reader = pdfStamper.getReader();
 
-
         PdfDictionary dss = new PdfDictionary();
         PdfDictionary vrim = new PdfDictionary();
         PdfArray ocsps = new PdfArray();
@@ -163,6 +155,8 @@ public class AdobeLtvEnabling {
         PdfArray certs = new PdfArray();
 
         writer.addDeveloperExtension(PdfDeveloperExtension.ESIC_1_7_EXTENSIONLEVEL5);
+        writer.addDeveloperExtension(new PdfDeveloperExtension(PdfName.ADBE, new PdfName("1.7"), 8));
+
         PdfDictionary catalog = reader.getCatalog();
         pdfStamper.markUsed(catalog);
         for (PdfName vkey : validated.keySet()) {
@@ -212,26 +206,50 @@ public class AdobeLtvEnabling {
     }
 
     //
-    // cryptographic helper methods
+    // VRI signature hash key calculation
     //
+    static PdfName getCrlHashKey(byte[] crlBytes) throws NoSuchAlgorithmException, IOException, CRLException, CertificateException {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        X509CRL crl = (X509CRL)cf.generateCRL(new ByteArrayInputStream(crlBytes));
+        byte[] signatureBytes = crl.getSignature();
+        DEROctetString octetString = new DEROctetString(signatureBytes);
+        byte[] octetBytes = octetString.getEncoded();
+        byte[] octetHash = hashBytesSha1(octetBytes);
+        PdfName octetName = new PdfName(Utilities.convertToHex(octetHash));
+        return octetName;
+    }
+
+    static PdfName getOcspHashKey(byte[] basicResponseBytes) throws NoSuchAlgorithmException, IOException {
+        BasicOCSPResponse basicResponse = BasicOCSPResponse.getInstance(basicResponseBytes);
+        byte[] signatureBytes = basicResponse.getSignature().getBytes();
+        DEROctetString octetString = new DEROctetString(signatureBytes);
+        byte[] octetBytes = octetString.getEncoded();
+        byte[] octetHash = hashBytesSha1(octetBytes);
+        PdfName octetName = new PdfName(Utilities.convertToHex(octetHash));
+        return octetName;
+    }
+
     static PdfName getSignatureHashKey(PdfDictionary dic, boolean encrypted) throws NoSuchAlgorithmException, IOException {
         PdfString contents = dic.getAsString(PdfName.CONTENTS);
-        byte[] bc = null;
-        if(!encrypted) {
-            bc = contents.getOriginalBytes();
-        }else{
-            bc = contents.getBytes();
-        }
-        byte[] bt = null;
+        byte[] bc = contents.getOriginalBytes();
         if (PdfName.ETSI_RFC3161.equals(PdfReader.getPdfObject(dic.get(PdfName.SUBFILTER)))) {
-            ASN1InputStream din = new ASN1InputStream(new ByteArrayInputStream(bc));
-            ASN1Primitive pkcs = din.readObject();
-            bc = pkcs.getEncoded();
+            try (   ASN1InputStream din = new ASN1InputStream(new ByteArrayInputStream(bc)) ) {
+                ASN1Primitive pkcs = din.readObject();
+                bc = pkcs.getEncoded();
+            }
         }
-        bt = hashBytesSha1(bc);
+        byte[] bt = hashBytesSha1(bc);
         return new PdfName(Utilities.convertToHex(bt));
     }
 
+    static byte[] hashBytesSha1(byte[] b) throws NoSuchAlgorithmException {
+        MessageDigest sh = MessageDigest.getInstance("SHA1");
+        return sh.digest(b);
+    }
+
+    //
+    // OCSP response helpers
+    //
     static X509Certificate getOcspSignerCertificate(byte[] basicResponseBytes) throws CertificateException, OCSPException, OperatorCreationException {
         JcaX509CertificateConverter converter = new JcaX509CertificateConverter().setProvider(BouncyCastleProvider.PROVIDER_NAME);
         BasicOCSPResponse borRaw = BasicOCSPResponse.getInstance(basicResponseBytes);
@@ -252,7 +270,7 @@ public class AdobeLtvEnabling {
         return null;
     }
 
-    private static byte[] buildOCSPResponse(byte[] BasicOCSPResponse) throws IOException {
+    static byte[] buildOCSPResponse(byte[] BasicOCSPResponse) throws IOException {
         DEROctetString doctet = new DEROctetString(BasicOCSPResponse);
         ASN1EncodableVector v2 = new ASN1EncodableVector();
         v2.add(OCSPObjectIdentifiers.id_pkix_ocsp_basic);
@@ -264,28 +282,10 @@ public class AdobeLtvEnabling {
         DERSequence seq = new DERSequence(v3);
         return seq.getEncoded();
     }
-    
-    static PdfName getOcspSignatureKey(byte[] basicResponseBytes) throws NoSuchAlgorithmException, IOException {
-        BasicOCSPResponse basicResponse = BasicOCSPResponse.getInstance(basicResponseBytes);
-        byte[] signatureBytes = basicResponse.getSignature().getBytes();
-        DEROctetString octetString = new DEROctetString(signatureBytes);
-        byte[] octetBytes = octetString.getEncoded();
-        byte[] octetHash = hashBytesSha1(octetBytes);
-        PdfName octetName = new PdfName(Utilities.convertToHex(octetHash));
-        return octetName;
-    }
 
-    static PdfName getCrlSignatureKey(byte[] crlBytes) throws NoSuchAlgorithmException, IOException, CRLException, CertificateException {
-        CertificateFactory cf = CertificateFactory.getInstance("X.509");
-        X509CRL crl = (X509CRL)cf.generateCRL(new ByteArrayInputStream(crlBytes));
-        byte[] signatureBytes = crl.getSignature();
-        DEROctetString octetString = new DEROctetString(signatureBytes);
-        byte[] octetBytes = octetString.getEncoded();
-        byte[] octetHash = hashBytesSha1(octetBytes);
-        PdfName octetName = new PdfName(Utilities.convertToHex(octetHash));
-        return octetName;
-    }
-
+    //
+    // X509 certificate related helpers
+    //
     static X509Certificate getIssuerCertificate(X509Certificate certificate) throws IOException, StreamParsingException {
         String url = getCACURL(certificate);
         if (url != null && url.length() > 0) {
@@ -313,7 +313,7 @@ public class AdobeLtvEnabling {
         return null;
     }
 
-    public static String getCACURL(X509Certificate certificate) {
+    static String getCACURL(X509Certificate certificate) {
         ASN1Primitive obj;
         try {
             obj = getExtensionValue(certificate, Extension.authorityInfoAccess.getId());
@@ -346,7 +346,7 @@ public class AdobeLtvEnabling {
         return null;
     }
 
-    private static ASN1Primitive getExtensionValue(X509Certificate certificate, String oid) throws IOException {
+    static ASN1Primitive getExtensionValue(X509Certificate certificate, String oid) throws IOException {
         byte[] bytes = certificate.getExtensionValue(oid);
         if (bytes == null) {
             return null;
@@ -360,11 +360,6 @@ public class AdobeLtvEnabling {
     private static String getStringFromGeneralName(ASN1Primitive names) throws IOException {
         ASN1TaggedObject taggedObject = (ASN1TaggedObject) names ;
         return new String(ASN1OctetString.getInstance(taggedObject, false).getOctets(), "ISO-8859-1");
-    }
-
-    private static byte[] hashBytesSha1(byte[] b) throws NoSuchAlgorithmException {
-        MessageDigest sh = MessageDigest.getInstance("SHA1");
-        return sh.digest(b);
     }
 
     //
