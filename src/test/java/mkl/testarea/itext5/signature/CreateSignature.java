@@ -22,6 +22,7 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PdfDictionary;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.PdfStamper;
@@ -30,8 +31,10 @@ import com.itextpdf.text.pdf.security.BouncyCastleDigest;
 import com.itextpdf.text.pdf.security.DigestAlgorithms;
 import com.itextpdf.text.pdf.security.ExternalDigest;
 import com.itextpdf.text.pdf.security.ExternalSignature;
+import com.itextpdf.text.pdf.security.ExternalSignatureContainer;
 import com.itextpdf.text.pdf.security.MakeSignature;
 import com.itextpdf.text.pdf.security.MakeSignature.CryptoStandard;
+import com.itextpdf.text.pdf.security.PdfPKCS7;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
 
 /**
@@ -543,5 +546,55 @@ public class CreateSignature
         signatureAppearance.setVisibleSignature(
                 rectangle, 
                 1, contact);
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/52220196/itext5-x-setting-pushbutton-appearance-without-breaking-seal">
+     * iText5.x Setting pushbutton appearance without breaking Seal
+     * </a>
+     * <br/>
+     * <a href="http://www.filedropper.com/samplecert">
+     * sampleCert.pdf
+     * </a>, cleared from signature, reduced to approval as sampleSigClean.pdf
+     * <p>
+     * This test places a signature into the (formerly certification, now only
+     * approval) signature field of the document.
+     * </p>
+     */
+    @Test
+    public final void signDeferredSampleSigClean() throws IOException, DocumentException, GeneralSecurityException {
+        try (   InputStream input = getClass().getResourceAsStream("sampleSigClean.pdf");
+                OutputStream output = new FileOutputStream(new File(RESULT_FOLDER, "sampleSigClean-signed.pdf"))) {
+            PdfReader pdfReader = new PdfReader(input);
+            String fieldName = "Signature1";
+            ExternalSignatureContainer container = new ExternalSignatureContainer() {
+                @Override
+                public byte[] sign(InputStream data) throws GeneralSecurityException {
+                    ExternalDigest externalDigest = new BouncyCastleDigest();
+                    ExternalSignature externalSignature = new PrivateKeySignature(pk, "SHA256", "BC");
+                    CryptoStandard sigtype = CryptoStandard.CADES;
+
+                    String hashAlgorithm = externalSignature.getHashAlgorithm();
+                    PdfPKCS7 sgn = new PdfPKCS7(null, chain, hashAlgorithm, null, externalDigest, false);
+                    byte hash[];
+                    try {
+                        hash = DigestAlgorithms.digest(data, externalDigest.getMessageDigest(hashAlgorithm));
+                    } catch (IOException e) {
+                        throw new GeneralSecurityException(e);
+                    }
+                    byte[] sh = sgn.getAuthenticatedAttributeBytes(hash, null, null, sigtype);
+                    byte[] extSignature = externalSignature.sign(sh);
+                    sgn.setExternalDigest(extSignature, null, externalSignature.getEncryptionAlgorithm());
+
+                    byte[] encodedSig = sgn.getEncodedPKCS7(hash, null, null, null, sigtype);
+                    return encodedSig;
+                }
+
+                @Override
+                public void modifySigningDictionary(PdfDictionary signDic) { }
+            };
+
+            MakeSignature.signDeferred(pdfReader, fieldName, output, container);
+        }
     }
 }
