@@ -22,7 +22,9 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PdfAnnotation;
 import com.itextpdf.text.pdf.PdfDictionary;
+import com.itextpdf.text.pdf.PdfFormField;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.PdfStamper;
@@ -595,6 +597,51 @@ public class CreateSignature
             };
 
             MakeSignature.signDeferred(pdfReader, fieldName, output, container);
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/53193048/java-pdf-digital-signature-using-itext-visible-but-not-printable">
+     * Java PDF digital signature using iText visible, but not printable
+     * </a>
+     * <p>
+     * This test signs a PDF in two passes, first it adds a signature
+     * field <i>not setting the PRINT flag</i>, then it signs the PDF
+     * using that signatrue field. The signature visualization of the
+     * resulting field is invisible in print. 
+     * </p>
+     */
+    @Test
+    public void signWidgetNoPrint() throws IOException, DocumentException, GeneralSecurityException {
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+        File intermediate = new File(RESULT_FOLDER, "NoPrintSignature-empty.pdf");
+
+        try (   InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                OutputStream os = new FileOutputStream(intermediate)) {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = new PdfStamper(reader, os);
+            PdfFormField field = PdfFormField.createSignature(stamper.getWriter());
+            field.setFieldName("Signature");
+            field.setWidget(new Rectangle(30, 830, 170, 770), PdfAnnotation.HIGHLIGHT_NONE);
+            stamper.addAnnotation(field, 1);
+            stamper.close();
+        }
+
+        try (   InputStream resource = new FileInputStream(intermediate);
+                OutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "NoPrintSignature-signed.pdf"))) {
+            PdfReader reader = new PdfReader(resource);
+            PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0');
+
+            PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            appearance.setReason("reason");
+            appearance.setLocation("location");
+            appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+            appearance.setVisibleSignature("Signature");
+
+            ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+            ExternalDigest digest = new BouncyCastleDigest();
+            MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
         }
     }
 }
