@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
 
 import org.apache.commons.io.IOUtils;
 import org.junit.BeforeClass;
@@ -22,6 +23,7 @@ import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PdfAction;
 import com.itextpdf.text.pdf.PdfAnnotation;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfGState;
@@ -29,6 +31,7 @@ import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPCellEvent;
 import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfString;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 
@@ -63,7 +66,7 @@ public class CreateLink
     public void testCreateLocalLinkInRotatedCell() throws IOException, DocumentException
     {
         Document doc = new Document();
-        PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(new File(RESULT_FOLDER, "local-link.pdf")));
+        PdfWriter.getInstance(doc, new FileOutputStream(new File(RESULT_FOLDER, "local-link.pdf")));
         doc.open();
 
         PdfPTable linkTable = new PdfPTable(2);
@@ -212,7 +215,7 @@ public class CreateLink
 
             mainPragraph.add(descCk);
             Chunk orgDiscriptionMore = new Chunk("HyperLink");
-            orgDiscriptionMore.setAnchor("http:/www.google.com");
+            orgDiscriptionMore.setAnchor("http://www.google.com");
             mainPragraph.add(orgDiscriptionMore);
 
             PdfContentByte canvas = canvases[PdfPTable.TEXTCANVAS];
@@ -228,5 +231,68 @@ public class CreateLink
                 e.printStackTrace();
             }
         }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/53264518/unicode-symbols-in-itextsharp-relative-link">
+     * Unicode symbols in iTextSharp relative link
+     * </a>
+     * <p>
+     * This test checks how to create a link to a local file with
+     * non-ASCII characters in its path. Unfortunately iText 5.x
+     * ignores the possibility that special characters might be
+     * contained in the anchor argument, applies the standard PDF
+     * document encryption, and actually drops all characters not
+     * in that encoding.
+     * </p>
+     * <p>
+     * The two options working properly are either injecting the UTF-8
+     * encoded URI ("Cyrillic chars in target. Action manipulated.")
+     * or URL encoding the URI beforehand ("Cyrillic chars in target.
+     * URL-encoded."). Actually the former method makes use of a PDF-2
+     * specific feature, UTF-8 encoded strings, so the latter one may
+     * be preferable.
+     * </p>
+     * <p>
+     * Probably the Launch Action variant can be made working, too, by
+     * finding the proper encoding to inject the file path with.
+     * </p>
+     */
+    @Test
+    public void testCreateLinkWithSpecialCharactersTarget() throws IOException, DocumentException {
+        Document doc = new Document();
+        PdfWriter writer = PdfWriter.getInstance(doc, new FileOutputStream(new File(RESULT_FOLDER, "link-special-char-target.pdf")));
+        writer.setCompressionLevel(0);
+        doc.open();
+
+        Chunk chunk = new Chunk("Only ASCII chars in target.");
+        chunk.setAnchor("./Attachments/1.jpg");
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in target.");
+        chunk.setAnchor("./Вложения/1.jpg");
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in launch.");
+        chunk.setAction(new PdfAction("./Вложения/1.jpg", null, null, null));
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in target. Action manipulated.");
+        chunk.setAnchor("./Вложения/1.jpg");
+        PdfAction action = (PdfAction) chunk.getAttributes().get(Chunk.ACTION);
+        action.put(PdfName.URI, new PdfString("./Вложения/1.jpg".getBytes("UTF8")));
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in launch. Action manipulated.");
+        chunk.setAction(new PdfAction("./Вложения/1.jpg", null, null, null));
+        action = (PdfAction) chunk.getAttributes().get(Chunk.ACTION);
+        action.put(PdfName.F, new PdfString("./Вложения/1.jpg".getBytes("UTF8")));
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in target. URL-encoded.");
+        chunk.setAnchor(URLEncoder.encode("./Вложения/1.jpg", "UTF8"));
+        doc.add(new Paragraph(chunk));
+
+        doc.close();
     }
 }
