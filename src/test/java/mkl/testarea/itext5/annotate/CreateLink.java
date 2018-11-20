@@ -257,6 +257,18 @@ public class CreateLink
      * Probably the Launch Action variant can be made working, too, by
      * finding the proper encoding to inject the file path with.
      * </p>
+     * <hr/>
+     * <p>
+     * The additional "Full path" variants have been added in the context of
+     * <a href="https://stackoverflow.com/questions/53322274/itext-pdf-link-doesnt-work-in-microsoft-edge">
+     * itext PDF link doesn't work in Microsoft Edge</a> because Edge
+     * apparently only supports complete, absolute URIs as link targets.
+     * </p>
+     * <p>
+     * In Edge these "Full path" variants except the one with URL-encoded
+     * Cyrillic characters work; Edge does appear to not support URIs with
+     * URL-encoded Cyrillic characters from PDFs.
+     * </p>
      */
     @Test
     public void testCreateLinkWithSpecialCharactersTarget() throws IOException, DocumentException {
@@ -291,6 +303,24 @@ public class CreateLink
 
         chunk = new Chunk("Cyrillic chars in target. URL-encoded.");
         chunk.setAnchor(URLEncoder.encode("./Вложения/1.jpg", "UTF8"));
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Only ASCII chars in target. Full path.");
+        chunk.setAnchor("file:///C:/Repo/GitHub/testarea/itext5/target/test-outputs/annotate/Attachments/1.png");
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in target. Action manipulated. Full path.");
+        chunk.setAnchor("./Вложения/1.png");
+        action = (PdfAction) chunk.getAttributes().get(Chunk.ACTION);
+        action.put(PdfName.URI, new PdfString("file:///C:/Repo/GitHub/testarea/itext5/target/test-outputs/annotate/Вложения/1.png".getBytes("UTF8")));
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Cyrillic chars in target. URL-encoded. Full path.");
+        chunk.setAnchor("file:///C:/Repo/GitHub/testarea/itext5/target/test-outputs/annotate/" + URLEncoder.encode("Вложения", "UTF8") + "/1.png");
+        doc.add(new Paragraph(chunk));
+
+        chunk = new Chunk("Only ASCII chars in target. Full path. PDF.");
+        chunk.setAnchor("file:///C:/Repo/GitHub/testarea/itext5/target/test-outputs/annotate/annotationIcons.pdf");
         doc.add(new Paragraph(chunk));
 
         doc.close();
