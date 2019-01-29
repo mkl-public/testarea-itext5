@@ -128,4 +128,32 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/54361974/how-to-compute-pdf-signature-hash">
+     * How to compute PDF signature hash?
+     * </a>
+     * <br/>
+     * <a href="https://gist.githubusercontent.com/nowox/94dd54e484df877e1232c18bd7b91c97/raw/d249f3757137e9b665e895c900f08b1156f1bc4f/dummy-signed.pdf.base64">
+     * dummy-signed.pdf
+     * </a>,
+     * the signature being extracted as "dummy-signed.pdf.Signature2.raw".
+     * <p>
+     * As it turns out, the OP looked at the wrong hash value (not the hash
+     * value in the messageDigest signed attribute but the encrypted hash
+     * value in the signature bytes). The value in the messageDigest signed
+     * attribute coincides with the hash of the signed byte ranges of the
+     * example PDF.
+     * </p>
+     */
+    @Test
+    public void testNowoxSignature() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("dummy-signed.pdf.Signature2.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
