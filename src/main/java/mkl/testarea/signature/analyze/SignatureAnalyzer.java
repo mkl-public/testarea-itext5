@@ -10,6 +10,7 @@ import java.security.spec.X509EncodedKeySpec;
 import java.util.Collection;
 import java.util.Map;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 
 import org.bouncycastle.asn1.ASN1Encodable;
@@ -241,16 +242,26 @@ public class SignatureAnalyzer
             if (cert != null) {
                 if (RSAUtil.isRsaOid(cert.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm())) {
                     KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
-                    Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/PKCS1Padding"); // NoPadding
-
                     PublicKey publicKey = rsaKeyFactory.generatePublic(new X509EncodedKeySpec(cert.getSubjectPublicKeyInfo().getEncoded()));
-                    cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
-                    byte[] bytes = cipherNoPadding.doFinal(signerInfo.getSignature());
-                    DigestInfo digestInfo = DigestInfo.getInstance(bytes);
-                    String digestString = toHex(digestInfo.getDigest());
-                    System.out.printf("Signature digest: %s\n", digestString);
-                    if (!digestString.equals(signedAttributeHashString))
-                        System.out.println("!!! Decrypted RSA signature does not end with signed attributes hash");
+
+                    try {
+                        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                        cipher.init(Cipher.DECRYPT_MODE, publicKey);
+                        byte[] bytes = cipher.doFinal(signerInfo.getSignature());
+                        DigestInfo digestInfo = DigestInfo.getInstance(bytes);
+                        String digestString = toHex(digestInfo.getDigest());
+                        System.out.printf("Decrypted signature digest: %s\n", digestString);
+                        if (!digestString.equals(signedAttributeHashString))
+                            System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
+                    } catch (BadPaddingException bpe) {
+                        System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());
+                        Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
+                        cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
+                        byte[] bytes = cipherNoPadding.doFinal(signerInfo.getSignature());
+                        System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
+                        if (bytes[bytes.length - 1] != 0xbc)
+                            System.out.println("!!! Decrypted RSA signature does not end with the PSS 0xbc byte either");
+                    }
                 }
             }
 

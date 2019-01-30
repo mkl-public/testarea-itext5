@@ -186,4 +186,54 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/54124067/how-to-sign-a-pdf-with-itextsharp-using-usbkey">
+     * How to sign a pdf with itextsharp using USBKey?
+     * </a>
+     * <br/>
+     * <a href="https://share.weiyun.com/5l7nKzQ">
+     * Hello_world2.pdf
+     * </a>,
+     * the signature being extracted as "Hello_world2.pdf.itextSharp.raw".
+     * <p>
+     * The signature bytes appear not to be created using the
+     * alleged signing certificate.
+     * </p>
+     */
+    @Test
+    public void testJinSignatureHelloWorld2() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("Hello_world2.pdf.itextSharp.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/54124067/how-to-sign-a-pdf-with-itextsharp-using-usbkey">
+     * How to sign a pdf with itextsharp using USBKey?
+     * </a>
+     * <br/>
+     * <a href="https://share.weiyun.com/5iOd6CQ">
+     * Hello_world3.pdf
+     * </a>,
+     * the signature being extracted as "Hello_world3.pdf.itextSharp.raw".
+     * <p>
+     * The signature bytes appear not to be created using the
+     * alleged signing certificate.
+     * </p>
+     */
+    @Test
+    public void testJinSignatureHelloWorld3() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("Hello_world3.pdf.itextSharp.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
