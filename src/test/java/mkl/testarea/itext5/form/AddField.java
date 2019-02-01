@@ -17,6 +17,8 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.ExceptionConverter;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.BaseField;
+import com.itextpdf.text.pdf.PdfBorderDictionary;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfFormField;
 import com.itextpdf.text.pdf.PdfPCell;
@@ -271,5 +273,39 @@ public class AddField
 
             stamper.close();
         }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/54442927/how-to-add-multiple-textfields-in-single-or-multiple-pages">
+     * How to add multiple Textfields in single or multiple pages
+     * </a>
+     * <p>
+     * This test shows how to easily add multiple fields to an existing document.
+     * </p>
+     */
+    @Test
+    public void testAddMultipleFields() throws IOException, DocumentException {
+        try (   InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                OutputStream output = new FileOutputStream(new File(RESULT_FOLDER, "test-with2textfields.pdf"))  ) {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper pdfStamper = new PdfStamper(pdfReader, output);
+
+            TextField field1 = new TextField(pdfStamper.getWriter(), new Rectangle(100, 800, 200, 820), "Field1");
+            field1.setBorderColor(BaseColor.CYAN);
+            field1.setBorderStyle(PdfBorderDictionary.STYLE_DASHED);
+            field1.setBorderWidth(BaseField.BORDER_WIDTH_MEDIUM);
+            field1.setText("Field 1");
+            pdfStamper.addAnnotation(field1.getTextField(), 1);
+
+            TextField field2 = new TextField(pdfStamper.getWriter(), new Rectangle(300, 800, 400, 820), "Field2");
+            field2.setBorderColor(BaseColor.RED);
+            field2.setBorderStyle(PdfBorderDictionary.STYLE_INSET);
+            field2.setBorderWidth(BaseField.BORDER_WIDTH_THIN);
+            field2.setText("Field 2");
+            pdfStamper.addAnnotation(field2.getTextField(), 1);
+
+            pdfStamper.close();
+        }
+        
     }
 }
