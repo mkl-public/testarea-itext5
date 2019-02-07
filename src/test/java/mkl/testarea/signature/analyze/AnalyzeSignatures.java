@@ -236,4 +236,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/54559547/external-signing-pdf-with-itext">
+     * External signing PDF with iText
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/1PD0avPqV-Qj6tNWQ_ifGRmGFBeLDadSj/view?usp=sharing">
+     * temp_scap.pdf
+     * </a>,
+     * the signature being extracted as "temp_scap.pdf.SignatureTeste0.raw".
+     * <p>
+     * Due to multiple errors in the signature generation process,
+     * this signature cannot be sensibly validated.
+     * </p>
+     */
+    @Test
+    public void testGonçaloGrazinaSignatureTempScap() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("temp_scap.pdf.SignatureTeste0.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
