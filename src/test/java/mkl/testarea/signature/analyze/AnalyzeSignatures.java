@@ -261,4 +261,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/54559547/external-signing-pdf-with-itext">
+     * External signing PDF with iText
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/1PD0avPqV-Qj6tNWQ_ifGRmGFBeLDadSj/view?usp=sharing">
+     * signedFile.pdf
+     * </a>,
+     * the signature being extracted as "signedFile.pdf.SignatureTeste0.raw".
+     * <p>
+     * One issue remains: the decrypted, de-padded value of the signature bytes
+     * is the naked hash, not a DigestInfo structure for the hash.
+     * </p>
+     */
+    @Test
+    public void testGonçaloGrazinaSignatureSignedFile() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("signedFile.pdf.SignatureTeste0.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }

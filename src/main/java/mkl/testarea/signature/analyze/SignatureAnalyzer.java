@@ -248,11 +248,16 @@ public class SignatureAnalyzer
                         Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                         cipher.init(Cipher.DECRYPT_MODE, publicKey);
                         byte[] bytes = cipher.doFinal(signerInfo.getSignature());
-                        DigestInfo digestInfo = DigestInfo.getInstance(bytes);
-                        String digestString = toHex(digestInfo.getDigest());
-                        System.out.printf("Decrypted signature digest: %s\n", digestString);
-                        if (!digestString.equals(signedAttributeHashString))
-                            System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
+                        try {
+                            DigestInfo digestInfo = DigestInfo.getInstance(bytes);
+                            String digestString = toHex(digestInfo.getDigest());
+                            System.out.printf("Decrypted signature digest: %s\n", digestString);
+                            if (!digestString.equals(signedAttributeHashString))
+                                System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
+                        } catch (IllegalArgumentException bpe) {
+                            System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + bpe.getMessage());
+                            System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
+                        }
                     } catch (BadPaddingException bpe) {
                         System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());
                         Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
