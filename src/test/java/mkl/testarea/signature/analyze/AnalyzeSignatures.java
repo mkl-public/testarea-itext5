@@ -286,4 +286,32 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://ec.europa.eu/cefdigital/tracker/browse/DSS-1538">
+     * Cannot analyze signatures Exception Error
+     * </a>
+     * <br/>
+     * <a href="https://ec.europa.eu/cefdigital/tracker/secure/attachment/18729/vypis_z_kn.pdf">
+     * vypis_z_kn.pdf
+     * </a>,
+     * the signature being extracted as "vypis_z_kn.pdf.Signature1.raw".
+     * <p>
+     * There is no issue validating the signature. As it turns out the problem
+     * was that the PDF is encrypted and the signature value dictionary does
+     * not have a type entry. Thus, PDFBox does not recognize the unencrypted
+     * signature container as such and attempts to decrypt it, scrambling it
+     * in the course of that.
+     * </p>
+     */
+    @Test
+    public void testJurajZacekSignatureVypis_z_kn() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("vypis_z_kn.pdf.Signature1.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
