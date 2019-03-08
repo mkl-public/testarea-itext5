@@ -314,4 +314,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/55042503/sign-pdf-hash-using-java-and-itext">
+     * Sign PDF hash using java and iText
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/file/d/13wpirorpEnj2dKi7ZTo76pYhx9Hfiz5v/view?usp=sharing">
+     * sampleinformedconsent_signed.pdf
+     * </a>,
+     * the signature being extracted as "sampleinformedconsent_signed.pdf.Signature1.raw".
+     * <p>
+     * The signed hash is neither the hash of the authenticated attributes
+     * nor that of the signed byte ranges. Cannot help yet.
+     * </p>
+     */
+    @Test
+    public void testPriyankaSignatureSampleinformedconsent_Signed() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("sampleinformedconsent_signed.pdf.Signature1.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
