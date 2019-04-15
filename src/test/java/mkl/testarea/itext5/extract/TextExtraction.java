@@ -969,4 +969,58 @@ public class TextExtraction
             
         });
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/55490282/why-i-cannot-use-itext-in-my-pdf-document-in-other-language-than-chinese">
+     * Why I cannot use IText in my pdf document in other language than chinese?
+     * </a>
+     * <br/>
+     * <a href="https://github.com/ssgo66/testItextParse/raw/master/ERR1.pdf">
+     * ERR1.pdf
+     * </a>
+     * <p>
+     * Indeed, iText cannot recognize Latin characters here.
+     * </p>
+     */
+    @Test
+    public void testssgo66Err1() throws Exception {
+        String str = "";
+        try (InputStream resourceStream = getClass().getResourceAsStream("ERR1.pdf")) {
+            PdfReader m_reader = new PdfReader(resourceStream);
+            str = PdfTextExtractor.getTextFromPage(m_reader, 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Files.write(new File(RESULT_FOLDER, "ERR1.txt").toPath(), str.getBytes("UTF8"));
+
+        System.out.println("\nText ERR1.pdf \n************************");
+        System.out.println(str);
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/55490282/why-i-cannot-use-itext-in-my-pdf-document-in-other-language-than-chinese">
+     * Why I cannot use IText in my pdf document in other language than chinese?
+     * </a>
+     * <br/>
+     * <a href="https://github.com/ssgo66/testItextParse/raw/master/ERR1-modified.pdf">
+     * ERR1-modified.pdf
+     * </a>
+     * <p>
+     * iText now can recognize <b>some</b> Latin characters here but not all.
+     * </p>
+     */
+    @Test
+    public void testssgo66Err1Modified() throws Exception {
+        String str = "";
+        try (InputStream resourceStream = getClass().getResourceAsStream("ERR1-modified.pdf")) {
+            PdfReader m_reader = new PdfReader(resourceStream);
+            str = PdfTextExtractor.getTextFromPage(m_reader, 1);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        Files.write(new File(RESULT_FOLDER, "ERR1-modified.txt").toPath(), str.getBytes("UTF8"));
+
+        System.out.println("\nText ERR1-modified.pdf \n************************");
+        System.out.println(str);
+    }
 }
