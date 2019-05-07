@@ -339,4 +339,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/55901977/insert-a-signedhash-into-pdf-for-external-signing-process-workingsample">
+     * Insert a SignedHash into PDF for external signing process - WorkingSample
+     * </a>
+     * <br/>
+     * <a href="https://www.dropbox.com/sh/wxt7ksghv34it1y/AABYLHYr85OW1QBKYy6m5h6ra?dl=0">
+     * signed.pdf
+     * </a>,
+     * the signature being extracted as "signed.pdf.sig.raw".
+     * <p>
+     * The signed hash is neither the hash of the authenticated attributes
+     * nor that of the signed byte ranges. Cannot help yet.
+     * </p>
+     */
+    @Test
+    public void testFabrizioBaroneSignatureSigned() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("signed.pdf.sig.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
