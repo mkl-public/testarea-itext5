@@ -364,4 +364,31 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/56560783/makesignature-signdeferred-embedding-signature-problem-itextsharp">
+     * MakeSignature.SignDeferred & Embedding Signature Problem (Itextsharp)
+     * </a>
+     * <br/>
+     * <a href="http://kurumsalhizmet.hobim.com/misc">
+     * test_signed.pdf
+     * </a>,
+     * the signature being extracted as "test_signed.pdf.SIG.raw".
+     * <p>
+     * The signature bytes are neither PKCS1-v1_5 padded nor
+     * EMSA-PSS encoded. Something already gone wrong in
+     * communication with the signature card. Probably the
+     * wrong signing app there-on was addressed.
+     * </p>
+     */
+    @Test
+    public void testDenizKasarSignatureTestSigned() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("test_signed.pdf.SIG.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
