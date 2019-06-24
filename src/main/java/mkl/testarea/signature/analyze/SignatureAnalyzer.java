@@ -2,6 +2,7 @@ package mkl.testarea.signature.analyze;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.reflect.Field;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -35,8 +36,10 @@ import org.bouncycastle.cert.ocsp.OCSPResp;
 import org.bouncycastle.cert.ocsp.SingleResp;
 import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSVerifierCertificateNotValidException;
 import org.bouncycastle.cms.SignerId;
 import org.bouncycastle.cms.SignerInformation;
+import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtil;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.DigestCalculatorProvider;
@@ -97,7 +100,7 @@ public class SignatureAnalyzer
             System.out.printf("\nSignerInfo: %s / %s\n", signerInfo.getSID().getIssuer(), signerInfo.getSID().getSerialNumber());
 
             Store certificates = signedData.getCertificates();
-            Collection certs = certificates.getMatches(new SignerId(signerInfo.getSID().getIssuer(), signerInfo.getSID().getSerialNumber()));
+            Collection certs = certificates.getMatches(signerInfo.getSID());
             
             System.out.print("Certificate: ");
             X509CertificateHolder cert = null;
@@ -109,6 +112,11 @@ public class SignatureAnalyzer
             {
                 cert = (X509CertificateHolder) certs.iterator().next();
                 System.out.printf("%s\n", cert.getSubject());
+            }
+
+            if (signerInfo.getSignedAttributes() == null) {
+                System.out.println("!!! No signed attributes");
+                continue;
             }
 
             Map<ASN1ObjectIdentifier, ?> attributes = signerInfo.getSignedAttributes().toHashtable();
@@ -213,9 +221,18 @@ public class SignatureAnalyzer
                         if (values.length > 1)
                             System.out.println("!!! Multiple Message Digest values");
                         for (ASN1Encodable value : values) {
-                            if (value instanceof ASN1OctetString)
-                                System.out.printf("Digest: %s\n", toHex(((ASN1OctetString)value).getOctets()));
-                            else
+                            if (value instanceof ASN1OctetString) {
+                                byte[] octets = ((ASN1OctetString)value).getOctets();
+                                System.out.printf("Digest: %s\n", toHex(octets));
+                                try {
+                                    Field resultDigestField = signerInfo.getClass().getDeclaredField("resultDigest");
+                                    resultDigestField.setAccessible(true);
+                                    resultDigestField.set(signerInfo, octets);
+                                } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
+                                    System.out.println("## Introspection failure: " + e.getMessage());
+                                }
+
+                            } else
                                 System.out.println("!!! Invalid Message Digest value type " + value.getClass());
                         }
                     }
@@ -237,7 +254,10 @@ public class SignatureAnalyzer
             byte[] signedAttributeHash = md.digest(signedAttributeBytes);
             String signedAttributeHashString = toHex(signedAttributeHash);
             System.out.printf("Signed Attributes Hash: %s\n", signedAttributeHashString);
-            System.out.printf("Signed Attributes Hash Hash: %s\n", toHex(md.digest(signedAttributeHash)));
+            md.reset();
+            byte[] signedAttributeHashHash = md.digest(signedAttributeHash);
+            String signedAttributeHashHashString = toHex(signedAttributeHashHash);
+            System.out.printf("Signed Attributes Hash Hash: %s\n", signedAttributeHashHashString);
 
             if (cert != null) {
                 if (RSAUtil.isRsaOid(cert.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm())) {
@@ -252,23 +272,48 @@ public class SignatureAnalyzer
                             DigestInfo digestInfo = DigestInfo.getInstance(bytes);
                             String digestString = toHex(digestInfo.getDigest());
                             System.out.printf("Decrypted signature digest: %s\n", digestString);
-                            if (!digestString.equals(signedAttributeHashString))
+                            if (!digestString.equals(signedAttributeHashString)) {
                                 System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
+                                if (digestString.equals(signedAttributeHashHashString))
+                                    System.out.println("!!! but it contains the hash of the signed attributes hash");
+                            }
                         } catch (IllegalArgumentException bpe) {
                             System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + bpe.getMessage());
                             System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
                         }
                     } catch (BadPaddingException bpe) {
                         System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());
-                        Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
-                        cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
-                        byte[] bytes = cipherNoPadding.doFinal(signerInfo.getSignature());
-                        System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
-                        if (bytes[bytes.length - 1] != 0xbc)
-                            System.out.println("!!! Decrypted RSA signature does not end with the PSS 0xbc byte either");
+                        try {
+                            Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
+                            cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
+                            byte[] bytes = cipherNoPadding.doFinal(signerInfo.getSignature());
+                            System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
+                            if (bytes[bytes.length - 1] != (byte) 0xbc)
+                                System.out.println("!!! Decrypted RSA signature does not end with the PSS 0xbc byte either");
+                            else {
+                                System.out.println("Decrypted RSA signature does end with the PSS 0xbc byte");
+                            }
+                        } catch(BadPaddingException bpe2) {
+                            System.out.println("!!! Failure decrypted RSA signature: " + bpe2.getMessage());
+                        }
                     }
                 }
+
+                System.out.println();
+
+                try {
+                    if(signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().build(cert)))
+                        System.out.println("Signature validates with certificate");
+                    else
+                        System.out.println("!!! Signature does not validate with certificate");
+                } catch(CMSVerifierCertificateNotValidException e1) {
+                    System.out.println("!!! Certificate not valid at claimed signing time: " + e1.getMessage());
+                } catch(CMSException e2) {
+                    System.out.println("!!! Verification failure: " + e2.getMessage());
+                }
             }
+
+            System.out.println();
 
             AttributeTable attributeTable = signerInfo.getUnsignedAttributes();
             if (attributeTable != null)
