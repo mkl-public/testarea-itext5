@@ -81,7 +81,7 @@ public class SignatureExtractor
                         bytes = data.getRawContents();
                         extension = ".raw";
                     }
-                    String sanitizedName = entry.getKey().replace(':', '_');
+                    String sanitizedName = entry.getKey().replace(':', '_').replace('/', '_').replace('\\', '_');
                     FileOutputStream output = new FileOutputStream(new File(file.getParent(), file.getName() + "." + sanitizedName + extension));
                     output.write(bytes);
                     output.close();
