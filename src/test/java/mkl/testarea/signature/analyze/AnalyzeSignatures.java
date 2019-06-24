@@ -391,4 +391,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/56560783/makesignature-signdeferred-embedding-signature-problem-itextsharp">
+     * MakeSignature.SignDeferred & Embedding Signature Problem (Itextsharp)
+     * </a>
+     * <br/>
+     * <a href="https://drive.google.com/open?id=1rFnaYmLwTRtrPMfHO7jLKZ0-6nUvzjJI">
+     * encodedSignature.dat
+     * </a>
+     * <p>
+     * The RSA-decrypted signature bytes now appear EMSA-PSS encoded.
+     * But they do not sign the signed attributes which is clear
+     * looking at the code.
+     * </p>
+     */
+    @Test
+    public void testDenizKasarEncodedSignature() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("encodedSignature.dat"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
