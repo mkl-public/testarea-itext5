@@ -46,7 +46,7 @@ public class PdfContentStreamEditor extends PdfContentStreamProcessor
         page.remove(PdfName.CONTENTS);
         editContent(pageContentInput, page.getAsDict(PdfName.RESOURCES), pdfStamper.getUnderContent(pageNum));
     }
-    
+
     /**
      * This method processes the content bytes and outputs to the given canvas.
      * It explicitly does not descent into form xobjects, patterns, or annotations.
@@ -55,9 +55,18 @@ public class PdfContentStreamEditor extends PdfContentStreamProcessor
     {
         this.canvas = canvas;
         processContent(contentBytes, resources);
+        finalizeContent();
         this.canvas = null;
     }
-    
+
+    /**
+     * This method is called after all original content is processed
+     * to allow flushing cached instructions.
+     */
+    public void finalizeContent() {
+        
+    }
+
     /**
      * <p>
      * This method writes content stream operations to the target canvas. The default
@@ -85,7 +94,15 @@ public class PdfContentStreamEditor extends PdfContentStreamProcessor
     //
     public PdfContentStreamEditor()
     {
-        super(new DummyRenderListener());
+        this(new DummyRenderListener());
+    }
+
+    //
+    // constructor using a custom render listener
+    //
+    public PdfContentStreamEditor(RenderListener renderListener)
+    {
+        super(renderListener);
     }
 
     //
