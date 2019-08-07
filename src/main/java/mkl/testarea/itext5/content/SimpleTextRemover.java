@@ -341,10 +341,10 @@ public class SimpleTextRemover extends PdfContentStreamEditor {
             this.width = info.getFont().getWidth(text);
         }
 
-        final String text;
-        final LineSegment ascent;
-        final LineSegment base;
-        final LineSegment descent;
+        public final String text;
+        public final LineSegment ascent;
+        public final LineSegment base;
+        public final LineSegment descent;
         final int elementNumber;
         final int index;
         final float width;
