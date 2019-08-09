@@ -7,14 +7,14 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 
-import mkl.testarea.itext5.extract.DividerAwareTextExtrationStrategy.Section;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.parser.PdfReaderContentParser;
+
+import mkl.testarea.itext5.extract.DividerAwareTextExtrationStrategy.Section;
 
 /**
  * Test / sample class for the {@link DividerAwareTextExtrationStrategy}.
@@ -89,5 +89,43 @@ public class DividerAwareTextExtraction
         }
 
         return builder.toString();
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/57013987/extract-text-from-pdf-column-wise-with-column-varying-in-size-and-position">
+     * Extract Text from PDF Column wise, with column varying in size and position
+     * </a>
+     * <br/>
+     * <a href="https://www.scribd.com/document/419494453/This-is-a-Sample-Document">
+     * 419494453-This-is-a-Sample-Document.pdf
+     * </a>
+     * <p>
+     * This test shows that the {@link SimpleDividerAwareTextExtractionStrategy}
+     * for documents like the OP's sample returns an easy to parse result string.
+     * </p>
+     */
+    @Test
+    public void testSimple419494453ThisIsASampleDocument() throws IOException, DocumentException
+    {
+        InputStream resourceStream = getClass().getResourceAsStream("419494453-This-is-a-Sample-Document.pdf");
+        try
+        {
+            PdfReader reader = new PdfReader(resourceStream);
+            PdfReaderContentParser parser = new PdfReaderContentParser(reader);
+            SimpleDividerAwareTextExtractionStrategy strategy = new SimpleDividerAwareTextExtractionStrategy();
+            for (int i = 1; i <= reader.getNumberOfPages(); i++)
+                parser.processContent(i, strategy);
+
+            String content = strategy.getResultantText();
+
+            System.out.println("\nText/Simple 419494453-This-is-a-Sample-Document.pdf\n************************");
+            System.out.println(content);
+            System.out.println("************************");
+        }
+        finally
+        {
+            if (resourceStream != null)
+                resourceStream.close();
+        }
     }
 }
