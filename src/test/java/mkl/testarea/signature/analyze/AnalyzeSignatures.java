@@ -416,4 +416,29 @@ public class AnalyzeSignatures
             SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/57904171/pdf-document-signing-with-google-kms-and-entrust-certificate">
+     * PDF document signing with Google KMS and Entrust certificate
+     * </a>
+     * <br/>
+     * <a href="http://www.filedropper.com/testfile">
+     * test_file.pdf
+     * </a>,
+     * the signature being extracted as "test_file.pdf.sig.raw".
+     * <p>
+     * The decrypted signatures bytes look like they might be RSASSA-PSS.
+     * The rest looks like RSA with PKCS1v1.5 padding.
+     * </p>
+     */
+    @Test
+    public void testGhovatTestFile() throws IOException, CMSException, TSPException, OperatorCreationException, GeneralSecurityException
+    {
+        try (InputStream resource = getClass().getResourceAsStream("test_file.pdf.sig.raw"))
+        {
+            byte[] signatureBytes = IOUtils.toByteArray(resource);
+            
+            SignatureAnalyzer analyzer = new SignatureAnalyzer(signatureBytes);
+        }
+    }
 }
