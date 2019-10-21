@@ -11,6 +11,8 @@ import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
+import java.text.SimpleDateFormat;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.BeforeClass;
@@ -30,6 +32,7 @@ import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.security.BouncyCastleDigest;
+import com.itextpdf.text.pdf.security.CertificateInfo;
 import com.itextpdf.text.pdf.security.DigestAlgorithms;
 import com.itextpdf.text.pdf.security.ExternalDigest;
 import com.itextpdf.text.pdf.security.ExternalSignature;
@@ -38,6 +41,7 @@ import com.itextpdf.text.pdf.security.MakeSignature;
 import com.itextpdf.text.pdf.security.MakeSignature.CryptoStandard;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
+import com.itextpdf.text.pdf.security.CertificateInfo.X500Name;
 
 /**
  * Miscellaneous signing tests.
@@ -644,4 +648,63 @@ public class CreateSignature
             MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/58473538/change-digitally-signed-by-key-owner-name">
+     * Change Digitally signed by “Key Owner Name”
+     * </a>
+     * <p>
+     * This test shows how one can create a custom signature layer 2
+     * text including variable certificate information. We here
+     * essentially copy the PdfSignatureAppearance.getAppearance code
+     * for generating layer 2 text and modify it to work as desired.
+     * </p>
+     */
+    @Test
+    public void signWithCustomLayer2Text() throws IOException, DocumentException, GeneralSecurityException
+    {
+        String digestAlgorithm = "SHA512";
+        CryptoStandard subfilter = CryptoStandard.CMS;
+
+        try (   InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf")  )
+        {
+            PdfReader reader = new PdfReader(resource);
+            FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "test-customLayer2Text.pdf"));
+            PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0');
+
+            PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            appearance.setReason("reason");
+            appearance.setLocation("location");
+            appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "sig");
+
+            // This essentially is the PdfSignatureAppearance.getAppearance code
+            // for generating layer 2 text.
+            // vvvvv
+            StringBuilder buf = new StringBuilder();
+            buf.append("Signed by ");
+            String name = null;
+            X500Name x500name = CertificateInfo.getSubjectFields((X509Certificate)chain[0]);
+            if (x500name != null) {
+                name = x500name.getField("CN");
+                if (name == null)
+                    name = x500name.getField("E");
+            }
+            if (name == null)
+                name = "";
+            buf.append(name).append('\n');
+            SimpleDateFormat sd = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss z");
+            buf.append("Date: ").append(sd.format(appearance.getSignDate().getTime()));
+            if (appearance.getReason() != null)
+                buf.append('\n').append("Reason: ").append(appearance.getReason());
+            if (appearance.getLocation() != null)
+                buf.append('\n').append("Location: ").append(appearance.getLocation());
+            appearance.setLayer2Text(buf.toString());
+            // ^^^^^
+
+            ExternalSignature pks = new PrivateKeySignature(pk, digestAlgorithm, "BC");
+            ExternalDigest digest = new BouncyCastleDigest();
+            MakeSignature.signDetached(appearance, digest, pks, chain, null, null, null, 0, subfilter);
+        }
+    }
+
 }
