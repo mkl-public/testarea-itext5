@@ -3,6 +3,8 @@ package mkl.testarea.signature.analyze;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -62,6 +64,15 @@ import org.bouncycastle.util.Store;
 public class SignatureAnalyzer
 {
     private DigestCalculatorProvider digCalcProvider = new BcDigestCalculatorProvider();
+
+    public static void main(String[] args) throws Exception {
+        for (String arg : args) {
+            System.out.printf("\nAnalyzing %s\n", arg);
+            byte[] bytes = Files.readAllBytes(FileSystems.getDefault().getPath(arg));
+            System.out.print("=========\n");
+            new SignatureAnalyzer(bytes);
+        }
+    }
 
     public SignatureAnalyzer(byte[] signatureData) throws CMSException, IOException, TSPException, OperatorCreationException, GeneralSecurityException
     {
