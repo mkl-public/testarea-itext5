@@ -523,4 +523,33 @@ public class MakeLtvEnabled {
     interface VriAdder {
         void accept(Collection<byte[]> ocsps, Collection<byte[]> crls, Collection<byte[]> certs);
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/58643594/digitally-signed-pdf-shows-identity-unknown-c-sharp-itextsharp">
+     * Digitally signed PDF shows Identity unknown C# itextsharp
+     * </a>
+     * <br/>
+     * <a href="https://gofile.io/?c=sRb06y">
+     * signedfile.Pdf
+     * </a>
+     * <p>
+     * After LTV-enabling Adobe Reader successfully verified the OP's
+     * signature.
+     * </p>
+     */
+    @Test
+    public void testSignedfile() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException {
+        try (   InputStream resource = getClass().getResourceAsStream("signedfile.Pdf");
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "signedfile-LTV.Pdf"))) {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper pdfStamper = new PdfStamper(pdfReader, result, (char)0, true);
+
+            AdobeLtvEnabling adobeLtvEnabling = new AdobeLtvEnabling(pdfStamper);
+            OcspClient ocsp = new OcspClientBouncyCastle();
+            CrlClient crl = new CrlClientOnline();
+            adobeLtvEnabling.enable(ocsp, crl);
+
+            pdfStamper.close();
+        }
+    }
 }
