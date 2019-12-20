@@ -17,6 +17,8 @@ import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfContentByte;
+import com.itextpdf.text.pdf.PdfPTable;
+import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.PdfWriter;
 
 /**
@@ -69,4 +71,35 @@ public class UseColumnText
         document.close();
     }
 
+    /**
+     * <a href="https://stackoverflow.com/questions/59403987/how-to-create-pdf-template-using-itextsharp">
+     * How to create PDF Template using iTextSharp
+     * </a>
+     * <p>
+     * This test shows how to add a table to a {@link PdfTemplate}.
+     * </p>
+     */
+    @Test
+    public void testAddTableToPdfTemplate() throws DocumentException, IOException {
+        Document document = new Document(PageSize.A4);
+
+        PdfWriter writer = PdfWriter.getInstance(document, new FileOutputStream(new File(RESULT_FOLDER, "TemplateWithTable.pdf")));
+        document.open();
+
+        PdfPTable table = new PdfPTable(2);
+        table.addCell("Test");
+        table.addCell("Table");
+
+        PdfContentByte canvas = writer.getDirectContent();
+        PdfTemplate template = canvas.createTemplate(300, 800);
+        Rectangle pageSize = document.getPageSize();
+        canvas.addTemplate(template, pageSize.getLeft(40), pageSize.getBottom(200));
+
+        ColumnText ct = new ColumnText(template);
+        ct.setSimpleColumn(new Rectangle(100, 100, 300, 600));
+        ct.addElement(table);
+        ct.go();
+
+        document.close();
+    }
 }
