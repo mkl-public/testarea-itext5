@@ -40,6 +40,7 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPException;
+import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.provider.X509CertParser;
 import org.bouncycastle.operator.ContentVerifierProvider;
@@ -151,7 +152,7 @@ public class MakeLtvEnabled {
      * </p>
      */
     @Test
-    public void testV3() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException {
+    public void testV3() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException, CMSException {
         try (   InputStream resource = getClass().getResourceAsStream("sign_without_LTV.pdf");
                 OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "sign_with_LTV_V3.pdf"))) {
             PdfReader pdfReader = new PdfReader(resource);
@@ -538,9 +539,40 @@ public class MakeLtvEnabled {
      * </p>
      */
     @Test
-    public void testSignedfile() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException {
+    public void testSignedfile() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException, CMSException {
         try (   InputStream resource = getClass().getResourceAsStream("signedfile.Pdf");
                 OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "signedfile-LTV.Pdf"))) {
+            PdfReader pdfReader = new PdfReader(resource);
+            PdfStamper pdfStamper = new PdfStamper(pdfReader, result, (char)0, true);
+
+            AdobeLtvEnabling adobeLtvEnabling = new AdobeLtvEnabling(pdfStamper);
+            OcspClient ocsp = new OcspClientBouncyCastle();
+            CrlClient crl = new CrlClientOnline();
+            adobeLtvEnabling.enable(ocsp, crl);
+
+            pdfStamper.close();
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/59469148/add-timestamp-for-hardware-token-digital-signature-and-adding-ltv-not-working">
+     * Add Timestamp for hardware token digital signature and adding LTV not working / throws exception
+     * </a>
+     * <p>
+     * The direct reason for the exception is that iText's PdfPKCS7 class
+     * does not support ECDSA. This test confirmed this. As a consequence
+     * the AdobeLtvEnabling class has been changed to not rely on PDFPKCS7
+     * but instead use BC code directly.
+     * </p>
+     * <p>
+     * Beware: Due to an issue of the OCSP certificates of the PKI in question
+     * this test now recurses forever. This still has to be fixed.
+     * </p>
+     */
+    @Test
+    public void testSampleECDSA() throws IOException, DocumentException, GeneralSecurityException, StreamParsingException, OCSPException, OperatorException, CMSException {
+        try (   InputStream resource = getClass().getResourceAsStream("sampleECDSA.pdf ");
+                OutputStream result = new FileOutputStream(new File(RESULT_FOLDER, "sampleECDSA-LTV.Pdf"))) {
             PdfReader pdfReader = new PdfReader(resource);
             PdfStamper pdfStamper = new PdfStamper(pdfReader, result, (char)0, true);
 

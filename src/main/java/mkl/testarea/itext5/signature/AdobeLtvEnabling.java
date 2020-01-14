@@ -39,12 +39,16 @@ import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPException;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.provider.X509CertParser;
 import org.bouncycastle.operator.ContentVerifierProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.OperatorException;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
+import org.bouncycastle.util.Store;
 import org.bouncycastle.x509.util.StreamParsingException;
 
 import com.itextpdf.text.Utilities;
@@ -89,13 +93,14 @@ public class AdobeLtvEnabling {
      * Call this method to have LTV information added to the {@link PdfStamper}
      * given in the constructor.
      */
-    public void enable(OcspClient ocspClient, CrlClient crlClient) throws OperatorException, GeneralSecurityException, IOException, StreamParsingException, OCSPException {
+    public void enable(OcspClient ocspClient, CrlClient crlClient) throws OperatorException, GeneralSecurityException, IOException, StreamParsingException, OCSPException, CMSException {
         AcroFields fields = pdfStamper.getAcroFields();
         boolean encrypted = pdfStamper.getReader().isEncrypted();
 
         ArrayList<String> names = fields.getSignatureNames();
         for (String name : names)
         {
+            /*
             PdfPKCS7 pdfPKCS7 = fields.verifySignature(name);
             PdfDictionary signatureDictionary = fields.getSignatureDictionary(name);
             List<X509Certificate> certificatesToCheck = new ArrayList<>();
@@ -103,6 +108,20 @@ public class AdobeLtvEnabling {
             while (!certificatesToCheck.isEmpty()) {
                 X509Certificate certificate = certificatesToCheck.remove(0);
                 addLtvForChain(certificate, ocspClient, crlClient, getSignatureHashKey(signatureDictionary, encrypted));
+            }
+             */
+            JcaX509CertificateConverter converter = new JcaX509CertificateConverter().setProvider("BC");
+            PdfDictionary signatureDictionary = fields.getSignatureDictionary(name);
+            PdfString contents = signatureDictionary.getAsString(PdfName.CONTENTS);
+            CMSSignedData signedData = new CMSSignedData(contents.getOriginalBytes());
+            Store certs = signedData.getCertificates();
+            for (Object signerInformationObject : signedData.getSignerInfos().getSigners()) {
+                SignerInformation signerInformation = (SignerInformation) signerInformationObject;
+                Collection signerCerts = certs.getMatches(signerInformation.getSID());
+                for (Object certObject : signerCerts) {
+                    X509CertificateHolder certHolder = (X509CertificateHolder) certObject;
+                    addLtvForChain(converter.getCertificate(certHolder), ocspClient, crlClient, getSignatureHashKey(signatureDictionary, encrypted));
+                }
             }
         }
 
