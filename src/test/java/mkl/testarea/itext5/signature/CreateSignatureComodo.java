@@ -14,6 +14,7 @@ import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 
 import org.bouncycastle.cert.ocsp.OCSPException;
+import org.bouncycastle.cms.CMSException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorException;
 import org.bouncycastle.x509.util.StreamParsingException;
@@ -109,7 +110,7 @@ public class CreateSignatureComodo {
      * </p>
      */
     @Test
-    public void testCreateNoChangesAllowedCertificationAndLtv() throws IOException, DocumentException, GeneralSecurityException, OperatorException, StreamParsingException, OCSPException {
+    public void testCreateNoChangesAllowedCertificationAndLtv() throws IOException, DocumentException, GeneralSecurityException, OperatorException, StreamParsingException, OCSPException, CMSException {
         try (   InputStream resource = getClass().getResourceAsStream(/*"/mkl/testarea/itext5/extract/test.pdf"*/"test-2.0.pdf");
                 OutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "test-comodo-no-changes-allowed.pdf"))) {
             PdfReader reader = new PdfReader(resource);
@@ -158,7 +159,7 @@ public class CreateSignatureComodo {
      * </p>
      */
     @Test
-    public void testCreateCertificationAndLtvAndNoChangesAllowed() throws IOException, DocumentException, GeneralSecurityException, OperatorException, StreamParsingException, OCSPException {
+    public void testCreateCertificationAndLtvAndNoChangesAllowed() throws IOException, DocumentException, GeneralSecurityException, OperatorException, StreamParsingException, OCSPException, CMSException {
         try (   InputStream resource = getClass().getResourceAsStream(/*"/mkl/testarea/itext5/extract/test.pdf"*/"test-2.0.pdf");
                 OutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "test-comodo-form-filling.pdf"))) {
             PdfReader reader = new PdfReader(resource);
