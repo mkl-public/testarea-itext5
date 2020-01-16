@@ -326,6 +326,21 @@ public class SignatureAnalyzer
 
             System.out.println();
 
+
+            if (certificates != null) {
+                for (Object certObject : certificates.getMatches(selectAny)) {
+                    X509CertificateHolder certHolder = (X509CertificateHolder) certObject;
+                    try {
+                        boolean verify = signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().build(certHolder));
+                        System.out.printf("Verify %s with '%s'.\n", verify ? "succeeds" : "fails", certHolder.getSubject());
+                    } catch(Exception ex) {
+                        System.out.printf("Verify throws exception with '%s': '%s'.\n", certHolder.getSubject(), ex.getMessage());
+                    }
+                }
+            }
+
+            System.out.println();
+
             AttributeTable attributeTable = signerInfo.getUnsignedAttributes();
             if (attributeTable != null)
             {
