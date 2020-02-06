@@ -1,0 +1,30 @@
+﻿{
+  "All_Routes": [
+        {
+          "comments": "",
+          "completed": 1,
+          "cost": 1.850235,
+          "costPerGallon": 3.59,
+          "gallons": 0.5153858,
+          "miles": 15.461574,
+          "milesPerGallon": 30.0,
+          "pinsData": "23.01055356474301;72.52621661871672|23.041044343899777;72.53993913531305|23.17339288295494;72.57919058203697",
+          "reimburseRate": 8.967712,
+          "routeDate": 1.580967567E9,
+          "route_data": "{\"routes\":[{\"legs\":[{\"distance\":{\"text\":\"5.1 km\",\"value\":5082},\"end_address\":\"3800, 132 Feet Ring Rd, gayatri soc, Jivraj Park, Ahmedabad, Gujarat 380051, India\",\"start_address\":\"303/B, Saparna Apartments, opp. Swami narayan temple, near radio mirchi, vejalpu, Jodhpur Village, Ahmedabad, Gujarat 380015, India\",\"steps\":[{\"end_location\":{\"lat\":23.013503,\"lng\":72.5261831},\"polyline\":{\"points\":\"agmkC{htyL]ByBNa@Bm@Bw@B{@BkBD]?gAA[?\"},\"start_location\":{\"lat\":23.0105726,\"lng\":72.5263834}},{\"end_location\":{\"lat\":23.0146857,\"lng\":72.5305061},\"polyline\":{\"points\":\"kymkCsgtyL[CQ}@Kk@CMe@uC]wBCQCUA]_A}FE[CMWiB\"},\"start_location\":{\"lat\":23.013503,\"lng\":72.5261831}},{\"end_location\":{\"lat\":23.0428479,\"lng\":72.54052519999999},\"polyline\":{\"points\":\"y`nkCubuyLo@HiALsBT]B_@Bk@FkAJ_@@c@BmAF]?kCDE?oB?w@?KAg@CU?S?aFIaABeAAiBAoHEm@?c@?s@?Y?U?O?a@CKAs@OQEk@Qg@OqAe@kBm@oBi@oA[o@Q_AYYIYKm@UOGc@O[Ke@Q_Bs@{CaB_FiCk@a@WUa@][YIGc@_@iA}@qB}A{AkAu@m@_@WgCkAaBq@qGkCOIcEcBwBy@w@]iAc@y@Y{Am@cA_@_Aa@e@Sg@Sw@c@m@_@_Ao@i@]m@a@q@e@a@[QKk@g@\"},\"start_location\":{\"lat\":23.0146857,\"lng\":72.5305061}},{\"end_location\":{\"lat\":23.0451331,\"lng\":72.5419697},\"polyline\":{\"points\":\"ypskCiawyLK?E?EAGAECUOuA_AcAk@_Ai@iCwAg@Y\"},\"start_location\":{\"lat\":23.0428479,\"lng\":72.54052519999999}},{\"end_location\":{\"lat\":23.0427683,\"lng\":72.5406564},\"polyline\":{\"points\":\"a_tkCijwyL[QJe@H[VNf@Zn@^zAz@tBlAdBfATPFDFHFJFL\"},\"start_location\":{\"lat\":23.0451331,\"lng\":72.5419697}},{\"end_location\":{\"lat\":23.041273,\"lng\":72.5395425},\"polyline\":{\"points\":\"ipskCcbwyLh@^r@j@THpA|@pA|@RL\"},\"start_location\":{\"lat\":23.0427683,\"lng\":72.5406564}}]},{\"distance\":{\"text\":\"19.8 km\",\"value\":19801},\"end_address\":\"Gandhi Nagar Cross Road, Adalaj, Gujarat 382421, India\",\"start_address\":\"3800, 132 Feet Ring Rd, gayatri soc, Jivraj Park, Ahmedabad, Gujarat 380051, India\",\"steps\":[{\"end_location\":{\"lat\":23.0340659,\"lng\":72.5358316},\"polyline\":{\"points\":\"}fskCc{vyL^T\\\\Pb@T`@Pf@TzAl@xAj@x@Zz@\\\\f@R`DnAzF|BdDvAnCbAp@\\\\xCnA\"},\"start_location\":{\"lat\":23.041273,\"lng\":72.5395425}},{\"end_location\":{\"lat\":23.0376359,\"lng\":72.52781689999999},\"polyline\":{\"points\":\"}yqkC}cvyL^ZGFIJGJi@|@i@fAq@rA[p@Wh@c@`AMZc@|@QRIRu@fB?@YZs@t@ST[n@k@j@_@b@SRA@W`@A@Q\\\\A@IT?@A@Kh@Ab@QzBAf@@n@DlAAb@Cf@Kj@IV?B]`A\"},\"start_location\":{\"lat\":23.0340659,\"lng\":72.5358316}},{\"end_location\":{\"lat\":23.0464249,\"lng\":72.5154725},\"polyline\":{\"points\":\"gprkC{qtyL@@?@@@?@?@?@?@?@?@?@A@?@A@?@A??@A?A@A?A@A?A?A?A?A?_@NwAZU@c@?G?e@Ac@E}@YaA[SEMESCKAI?G?I@I@GDMJQZ{@`Be@~@e@`Aa@r@Yh@KR?@]x@qBxD]x@ENCDCNIXa@bBABYpAc@hBWhAENa@~AERc@pBOn@Md@GXMh@ITAFi@lCWpAUdAOj@I\\\\IVIPMRQVqB|BOPmBbCq@x@KNUZELIRQ`@CFAD\"},\"start_location\":{\"lat\":23.0376359,\"lng\":72.52781689999999}},{\"end_location\":{\"lat\":23.0584926,\"lng\":72.5198101},\"polyline\":{\"points\":\"cgtkCudryLMGqBy@KEGCo@U}@]eC}@iBo@qC}@UIe@QiAYmDcA_Co@qCo@iCm@g@KkCg@gCe@wJmBsDq@qDu@\"},\"start_location\":{\"lat\":23.0464249,\"lng\":72.5154725}},{\"end_location\":{\"lat\":23.0604758,\"lng\":72.52045749999999},\"polyline\":{\"points\":\"qrvkCy_syLUGeI}AQEKESO\"},\"start_location\":{\"lat\":23.0584926,\"lng\":72.5198101}},{\"end_location\":{\"lat\":23.1358402,\"lng\":72.5423555},\"polyline\":{\"points\":\"__wkC{csyL]CcA]iAWyA[kDs@oCi@qGoA{Du@iAUiAUwB_@wBa@kE{@{@QeASi@KEAa@IiCe@kDq@uIcBqFeAa@IaLuBQEwDs@qDu@}@Qs@MaAS{E_A_Ew@oE{@iGmAeEw@cDo@eFcAmDq@aGkAWGwS_EaE{@oB[aAY{FkAmL{BkCg@eASWGIAsAWeDo@yLeCiE{@yASc@IwEy@gB[qAYcDu@eQeDa@IgCe@s@OeYuFe@K}XsFsE_AiCg@sDs@iOqCkCg@{O}C}Ba@_Cc@oAY{E_AqAYkKsByFiA{FkAUAEAE?M@OB\"},\"start_location\":{\"lat\":23.0604758,\"lng\":72.52045749999999}},{\"end_location\":{\"lat\":23.1712365,\"lng\":72.5752406},\"polyline\":{\"points\":\"_velCwlwyLABC@ABC@C@C@C@C?G@G@I?GAICGCGEEEAAACAAACACAAACAC_@UKGMEME]GwAWwA]wH}AiCm@KCaCo@e@MwAg@m@QiAa@yBy@gCgAkFiCeAi@kFwCMIy@e@a@SWOo@_@yCeBsBmA_H}DsCaBiBeAaAi@MImAs@}A}@yQoKYQa@UiBiAWOUM}@e@sHsEyBiAsCwAMGwAu@OG_Ae@w@cAU]Yc@]m@i@iAWi@}G_O{B}EcBsDa@}@y@aBy@eBiNaZoGcNe@cAoEoJkG_Ng@_A\"},\"start_location\":{\"lat\":23.1358402,\"lng\":72.5423555}},{\"end_location\":{\"lat\":23.1734316,\"lng\":72.579166},\"polyline\":{\"points\":\"gsllCgz}yLO_@Uc@Ue@eA{BcBuDyA}Cw@cBSe@ACa@}@EK\"},\"start_location\":{\"lat\":23.1712365,\"lng\":72.5752406}}]}],\"overview_polyline\":{\"points\":\"agmkC{htyLgFZ}FLcBA[CQ}@Oy@cAmGGg@A]_A}FIi@WiBo@H}Db@}@F{DXkBFqCDgD?s@Ei@?aFIaABoDC}IEgC?q@C_AQwDmA{EwA_Cm@yAc@gAa@uBu@_Bs@{CaB_FiCk@a@y@s@e@a@{HgGuAeAiF}B}QsHwGiCqEiBeBcAiBmAsCoBk@g@K?KAMEkBoAuHgE[QJe@H[VNvAz@pEhCzBxANNNX|AjAfBfAdBjA|@f@dAf@vGjC`O~FtHzCjElB^ZGFQVsAdCmAdCmBdE[f@u@hBmApAo@dAaBdBm@bAWbAS~C?vADlAAb@Cf@UbA]dA@B@B?FADGHM@_@NwAZy@@m@Ac@E}@YuAa@a@Ig@?QFMJQZaB`DgAtBe@|@]z@qBxD]x@ITq@pC{AtG{AtGm@~ByAlHYhASh@_@j@aCnCaEhFe@jAADMG}B_A{FuBwHiCwF}A_Co@qCo@qDy@sGmAkP_DgE}@wIcB_@U]CcA]cDs@iWcFcKmBwJmBij@mKk]{GcYqFmTiEyY{FoB[aAYiTgEqE{@{GqAcSaE}B]_IuAuFoAcXeF}z@uPs]uGyS_EoE}@s\\\\wG{FkAUAKA]DEDIFSDQ@QEWQMWk@][KuB_@oK{BuCq@gD}@eCy@cE{AgCgAkFiCqHaEaCsAk\\\\mR_XsOyD}BqJyFmGaDuDkBmAaBw@qA{MqYif@sdAyIcRyGuNuBwE\"}}]}",
+          "startOdometer": 0.0,
+          "stopOdometer": 0.0,
+          "tagName": "rann",
+          "taxRate": 0.58,
+          "taxRateName": "Business",
+          "vehicleName": "Default Vehicle",
+          "waypoints": ""
+        }
+  ],
+  "All_Tags": [
+        "rann"
+  ],
+  "All_Vehicles": [
+        "Default Vehicle"
+  ]
+}
