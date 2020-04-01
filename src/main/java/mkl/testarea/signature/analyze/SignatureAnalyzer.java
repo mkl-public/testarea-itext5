@@ -271,42 +271,14 @@ public class SignatureAnalyzer
             System.out.printf("Signed Attributes Hash Hash: %s\n", signedAttributeHashHashString);
 
             if (cert != null) {
-                if (RSAUtil.isRsaOid(cert.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm())) {
-                    KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
-                    PublicKey publicKey = rsaKeyFactory.generatePublic(new X509EncodedKeySpec(cert.getSubjectPublicKeyInfo().getEncoded()));
-
-                    try {
-                        Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-                        cipher.init(Cipher.DECRYPT_MODE, publicKey);
-                        byte[] bytes = cipher.doFinal(signerInfo.getSignature());
-                        try {
-                            DigestInfo digestInfo = DigestInfo.getInstance(bytes);
-                            String digestString = toHex(digestInfo.getDigest());
-                            System.out.printf("Decrypted signature digest: %s\n", digestString);
-                            if (!digestString.equals(signedAttributeHashString)) {
-                                System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
-                                if (digestString.equals(signedAttributeHashHashString))
-                                    System.out.println("!!! but it contains the hash of the signed attributes hash");
-                            }
-                        } catch (IllegalArgumentException bpe) {
-                            System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + bpe.getMessage());
-                            System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
-                        }
-                    } catch (BadPaddingException bpe) {
-                        System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());
-                        try {
-                            Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
-                            cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
-                            byte[] bytes = cipherNoPadding.doFinal(signerInfo.getSignature());
-                            System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
-                            if (bytes[bytes.length - 1] != (byte) 0xbc)
-                                System.out.println("!!! Decrypted RSA signature does not end with the PSS 0xbc byte either");
-                            else {
-                                System.out.println("Decrypted RSA signature does end with the PSS 0xbc byte");
-                            }
-                        } catch(BadPaddingException bpe2) {
-                            System.out.println("!!! Failure decrypted RSA signature: " + bpe2.getMessage());
-                        }
+                byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert);
+                if (digestBytes != null) {
+                    String digestString = toHex(digestBytes);
+                    System.out.printf("Decrypted signature digest: %s\n", digestString);
+                    if (!digestString.equals(signedAttributeHashString)) {
+                        System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
+                        if (digestString.equals(signedAttributeHashHashString))
+                            System.out.println("!!! but it contains the hash of the signed attributes hash");
                     }
                 }
 
@@ -420,6 +392,44 @@ public class SignatureAnalyzer
                 }
             }
         } 
+    }
+
+    public static byte[] analyzeSignatureBytes(byte[] signatureBytes, X509CertificateHolder cert) throws GeneralSecurityException, IOException {
+        if (RSAUtil.isRsaOid(cert.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm())) {
+            KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
+            PublicKey publicKey = rsaKeyFactory.generatePublic(new X509EncodedKeySpec(cert.getSubjectPublicKeyInfo().getEncoded()));
+
+            try {
+                Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+                cipher.init(Cipher.DECRYPT_MODE, publicKey);
+                byte[] bytes = cipher.doFinal(signatureBytes);
+                try {
+                    DigestInfo digestInfo = DigestInfo.getInstance(bytes);
+                    String digestString = toHex(digestInfo.getDigest());
+                    System.out.printf("Decrypted signature digest: %s\n", digestString);
+                    return digestInfo.getDigest();
+                } catch (IllegalArgumentException bpe) {
+                    System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + bpe.getMessage());
+                    System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
+                }
+            } catch (BadPaddingException bpe) {
+                System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());
+                try {
+                    Cipher cipherNoPadding = Cipher.getInstance("RSA/ECB/NoPadding");
+                    cipherNoPadding.init(Cipher.DECRYPT_MODE, publicKey);
+                    byte[] bytes = cipherNoPadding.doFinal(signatureBytes);
+                    System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
+                    if (bytes[bytes.length - 1] != (byte) 0xbc)
+                        System.out.println("!!! Decrypted RSA signature does not end with the PSS 0xbc byte either");
+                    else {
+                        System.out.println("Decrypted RSA signature does end with the PSS 0xbc byte");
+                    }
+                } catch(BadPaddingException bpe2) {
+                    System.out.println("!!! Failure decrypted RSA signature: " + bpe2.getMessage());
+                }
+            }
+        }
+        return null;
     }
 
     public static String toHex(byte[] bytes)
