@@ -1,5 +1,6 @@
 package mkl.testarea.signature.analyze;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.reflect.Field;
@@ -8,9 +9,13 @@ import java.nio.file.Files;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
 import java.security.spec.X509EncodedKeySpec;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.crypto.BadPaddingException;
@@ -21,16 +26,20 @@ import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1TaggedObject;
+import org.bouncycastle.asn1.DEROutputStream;
 import org.bouncycastle.asn1.cms.Attribute;
 import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.ContentInfo;
 import org.bouncycastle.asn1.ocsp.OCSPResponse;
 import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
+import org.bouncycastle.asn1.x500.X500Name;
 import org.bouncycastle.asn1.x509.DigestInfo;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
+import org.bouncycastle.asn1.x509.TBSCertificate;
+import org.bouncycastle.cert.CertException;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPException;
@@ -47,12 +56,13 @@ import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
+import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.tsp.TSPException;
 import org.bouncycastle.tsp.TimeStampToken;
 import org.bouncycastle.tsp.TimeStampTokenInfo;
-import org.bouncycastle.util.Arrays;
 import org.bouncycastle.util.Selector;
 import org.bouncycastle.util.Store;
+
 
 /**
  * This class is meant to eventually become a tool for analyzing signatures.
@@ -274,7 +284,6 @@ public class SignatureAnalyzer
                 byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert);
                 if (digestBytes != null) {
                     String digestString = toHex(digestBytes);
-                    System.out.printf("Decrypted signature digest: %s\n", digestString);
                     if (!digestString.equals(signedAttributeHashString)) {
                         System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
                         if (digestString.equals(signedAttributeHashHashString))
@@ -294,10 +303,65 @@ public class SignatureAnalyzer
                 } catch(CMSException e2) {
                     System.out.println("!!! Verification failure: " + e2.getMessage());
                 }
+
+                System.out.println("\nCertificate path from accompanying certificates");
+                X509CertificateHolder c = cert;
+                JcaContentVerifierProviderBuilder jcaContentVerifierProviderBuilder = new JcaContentVerifierProviderBuilder();
+                while (c != null) {
+                    System.out.printf("- %s ", c.getSubject());
+                    X500Name issuer = c.getIssuer();
+                    Collection cs = certificates.getMatches(new Selector() {
+                        @Override
+                        public boolean match(Object obj) {
+                            return  (obj instanceof X509CertificateHolder) && ((X509CertificateHolder)obj).getSubject().equals(issuer);
+                        }
+
+                        @Override
+                        public Object clone() {
+                            return this;
+                        }
+                    });
+                    if (cs.size() != 1) {
+                        System.out.printf("(no unique match - %d)", cs.size());
+                        break;
+                    }
+                    X509CertificateHolder cc = (X509CertificateHolder) cs.iterator().next();
+                    try {
+                        boolean isValid = c.isSignatureValid(jcaContentVerifierProviderBuilder.build(cc));
+                        System.out.print(isValid ? "(valid signature)" : "(invalid signature)");
+                        TBSCertificate tbsCert = c.toASN1Structure().getTBSCertificate();
+                        try (   ByteArrayOutputStream sOut = new ByteArrayOutputStream() ) {
+                            DEROutputStream dOut = new DEROutputStream(sOut);
+                            dOut.writeObject(tbsCert);
+                            byte[] tbsDerBytes = sOut.toByteArray();
+                            boolean isDer = Arrays.equals(tbsDerBytes, tbsCert.getEncoded());
+                            if (!isDer)
+                                System.out.print(" (TBSCertificate not DER encoded)");
+                        }
+                        if (!isValid) {
+                            System.out.println("\nHashes of the TBSCertificate:");
+                            for (Map.Entry<String, MessageDigest> entry : SignatureAnalyzer.digestByName.entrySet()) {
+                                String digestName = entry.getKey();
+                                MessageDigest digest = entry.getValue();
+                                digest.reset();
+                                byte[] digestValue = digest.digest(tbsCert.getEncoded());
+                                System.out.printf(" * %s: %s\n", digestName, SignatureAnalyzer.toHex(digestValue));
+                            }
+                            analyzeSignatureBytes(c.getSignature(), cc);
+                        }
+                    } catch (CertException e) {
+                        System.out.printf("(inappropriate signature - %s)", e.getMessage());
+                    }
+                    if (c == cc) {
+                        System.out.print(" (self-signed)");
+                        c = null;
+                    } else
+                        c = cc;
+                    System.out.println();
+                }
             }
 
             System.out.println();
-
 
             if (certificates != null) {
                 for (Object certObject : certificates.getMatches(selectAny)) {
@@ -343,7 +407,7 @@ public class SignatureAnalyzer
                             dOut.close();
 
                             byte[] expectedDigest = digCalc.getDigest();
-                            boolean matches =  Arrays.constantTimeAreEqual(expectedDigest, tstInfo.getMessageImprintDigest());
+                            boolean matches =  Arrays.equals(expectedDigest, tstInfo.getMessageImprintDigest());
                             
                             System.out.printf("Digest match? %s\n", matches);
 
@@ -462,6 +526,21 @@ public class SignatureAnalyzer
             return this;
         }
     };
+
+    final static List<String> digestNames = Arrays.asList("SHA-512", "SHA-384", "SHA-256", "SHA-224", "SHA1");
+    public final static Map<String, MessageDigest> digestByName = new LinkedHashMap<>();
+
+    static {
+        for (String name : digestNames) {
+            try {
+                MessageDigest digest = MessageDigest.getInstance(name);
+                digestByName.put(name, digest);
+            } catch (NoSuchAlgorithmException e) {
+                System.err.printf("Unknown digest algorithm '%s'. Skipping.\n", name);
+            }
+        }
+        System.err.println();
+    }
 
     static final ASN1ObjectIdentifier adobe = new ASN1ObjectIdentifier("1.2.840.113583");
     static final ASN1ObjectIdentifier acrobat = adobe.branch("1");

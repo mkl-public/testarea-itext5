@@ -5,10 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.bouncycastle.cms.CMSException;
@@ -77,7 +73,7 @@ public class PdfSignatureAnalyzer {
         }
 
         System.out.println("\nHashes of the signed bytes:");
-        for (Map.Entry<String, MessageDigest> entry : digestByName.entrySet()) {
+        for (Map.Entry<String, MessageDigest> entry : SignatureAnalyzer.digestByName.entrySet()) {
             String digestName = entry.getKey();
             MessageDigest digest = entry.getValue();
             digest.reset();
@@ -115,21 +111,6 @@ public class PdfSignatureAnalyzer {
             new SignatureAnalyzer(contentBytes);
         } else
             System.out.printf("!!! Signature field '%s' value has no contents, it is not signed.\n", signatureFieldName);
-    }
-
-    final static List<String> digestNames = Arrays.asList("SHA-512", "SHA-384", "SHA-256", "SHA-224", "SHA1");
-    final static Map<String, MessageDigest> digestByName = new LinkedHashMap<>();
-
-    static {
-        for (String name : digestNames) {
-            try {
-                MessageDigest digest = MessageDigest.getInstance(name);
-                digestByName.put(name, digest);
-            } catch (NoSuchAlgorithmException e) {
-                System.err.printf("Unknown digest algorithm '%s'. Skipping.\n", name);
-            }
-        }
-        System.err.println();
     }
 
 }
