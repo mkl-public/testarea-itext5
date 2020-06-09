@@ -6,6 +6,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -21,6 +24,7 @@ import org.junit.Test;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
+import com.itextpdf.text.Image;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.ColumnText;
@@ -33,6 +37,7 @@ import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PdfTemplate;
 import com.itextpdf.text.pdf.security.BouncyCastleDigest;
 import com.itextpdf.text.pdf.security.CertificateInfo;
+import com.itextpdf.text.pdf.security.CertificateInfo.X500Name;
 import com.itextpdf.text.pdf.security.DigestAlgorithms;
 import com.itextpdf.text.pdf.security.ExternalDigest;
 import com.itextpdf.text.pdf.security.ExternalSignature;
@@ -41,7 +46,6 @@ import com.itextpdf.text.pdf.security.MakeSignature;
 import com.itextpdf.text.pdf.security.MakeSignature.CryptoStandard;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 import com.itextpdf.text.pdf.security.PrivateKeySignature;
-import com.itextpdf.text.pdf.security.CertificateInfo.X500Name;
 
 /**
  * Miscellaneous signing tests.
@@ -707,4 +711,132 @@ public class CreateSignature
         }
     }
 
+    /**
+     * @see #signLikePauloGonçalvesOriginal()
+     * @see #signLikePauloGonçalvesEdited()
+     */
+    public static void signLikePauloGonçalves(InputStream src,OutputStream dest, InputStream p12Stream, char[] password, String reason, String location, String imagePath) throws Exception {
+        PdfReader reader = new PdfReader(src);
+        PdfStamper stamper = PdfStamper.createSignature(reader, dest, '\0', null, true);
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setReason(reason);
+        appearance.setLocation(location);
+        appearance.setVisibleSignature(new Rectangle(300, 600, 630, 500), 1, "sig");
+
+        Image image = Image.getInstance(imagePath);
+        appearance.setSignatureGraphic(image);
+        appearance.setRenderingMode(PdfSignatureAppearance.RenderingMode.GRAPHIC);
+
+        appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+
+        ExternalDigest digest = new BouncyCastleDigest();
+        ExternalSignature signature = new PrivateKeySignature(pk, DigestAlgorithms.SHA256, null);
+        MakeSignature.signDetached(appearance, digest, signature, chain, null, null, null, 0, MakeSignature.CryptoStandard.CMS);
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/62271473/multiple-signings-in-pdf-file-using-itext">
+     * Multiple Signings in pdf File using IText
+     * </a>
+     * <p>
+     * This is like the OP's original code. Already the first <code>sign</code>
+     * call truncates the original file before iText could read it. Thus, iText
+     * throws an exception.
+     * </p>
+     * @see #signLikePauloGonçalves(InputStream, OutputStream, InputStream, char[], String, String, String)
+     */
+    @Test
+    public void signLikePauloGonçalvesOriginal() throws Exception {
+        String basePath = RESULT_FOLDER.getPath() + '/';
+        try (   InputStream pdfResource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                InputStream img1Resource = getClass().getResourceAsStream("/mkl/testarea/itext5/content/2x2colored.png");
+                InputStream img2Resource = getClass().getResourceAsStream("/mkl/testarea/itext5/stamp/Signature.png")) {
+            Files.copy(pdfResource, Paths.get(basePath, "nonsigned.pdf"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(img1Resource, Paths.get(basePath, "signing1.png"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(img2Resource, Paths.get(basePath, "signing2.png"), StandardCopyOption.REPLACE_EXISTING);
+        }
+        
+        signLikePauloGonçalves(new FileInputStream(basePath+"nonsigned.pdf"), new FileOutputStream(basePath+"nonsigned.pdf"), null, "mycert3".toCharArray(), "something", "something", basePath + "signing1.png");
+        signLikePauloGonçalves(new FileInputStream(basePath+"nonsigned.pdf"), new FileOutputStream(basePath+"signed.pdf"), null, "mycert4".toCharArray(), "something", "something", basePath + "signing2.png");
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/62271473/multiple-signings-in-pdf-file-using-itext">
+     * Multiple Signings in pdf File using IText
+     * </a>
+     * <p>
+     * This is like the OP's edited code. Both <code>sign</code> calls
+     * sign the original, unsigned document. Thus, the remaining output
+     * is the file with the signature from the second signing call.
+     * </p>
+     * @see #signLikePauloGonçalves(InputStream, OutputStream, InputStream, char[], String, String, String)
+     */
+    @Test
+    public void signLikePauloGonçalvesEdited() throws Exception {
+        String basePath = RESULT_FOLDER.getPath() + '/';
+        try (   InputStream pdfResource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                InputStream img1Resource = getClass().getResourceAsStream("/mkl/testarea/itext5/content/2x2colored.png");
+                InputStream img2Resource = getClass().getResourceAsStream("/mkl/testarea/itext5/stamp/Signature.png")) {
+            Files.copy(pdfResource, Paths.get(basePath, "nonsigned.pdf"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(img1Resource, Paths.get(basePath, "signing1.png"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(img2Resource, Paths.get(basePath, "signing2.png"), StandardCopyOption.REPLACE_EXISTING);
+        }
+        
+        signLikePauloGonçalves(new FileInputStream(basePath+"nonsigned.pdf"), new FileOutputStream(basePath+"signed.pdf"), null, "mycert3".toCharArray(), "something", "something", basePath + "signing1.png");
+        signLikePauloGonçalves(new FileInputStream(basePath+"nonsigned.pdf"), new FileOutputStream(basePath+"signed.pdf"), null, "mycert4".toCharArray(), "something", "something", basePath + "signing2.png");
+    }
+
+    /**
+     * @see #signLikePauloGonçalvesCorrected()
+     */
+    public static void signLikePauloGonçalvesImproved(InputStream src, OutputStream dest, InputStream p12Stream, char[] password, String reason, String location, String imagePath, String field) throws Exception {
+        PdfReader reader = new PdfReader(src);
+        PdfStamper stamper = PdfStamper.createSignature(reader, dest, '\0', null, true);
+        PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+        appearance.setReason(reason);
+        appearance.setLocation(location);
+        appearance.setVisibleSignature(new Rectangle(300, 600, 630, 500), 1, field);
+
+        Image image = Image.getInstance(imagePath);
+        appearance.setSignatureGraphic(image);
+        appearance.setRenderingMode(PdfSignatureAppearance.RenderingMode.GRAPHIC);
+
+//        appearance.setCertificationLevel(PdfSignatureAppearance.CERTIFIED_NO_CHANGES_ALLOWED);
+
+        ExternalDigest digest = new BouncyCastleDigest();
+        ExternalSignature signature = new PrivateKeySignature(pk, DigestAlgorithms.SHA256, null);
+        MakeSignature.signDetached(appearance, digest, signature, chain, null, null, null, 0, MakeSignature.CryptoStandard.CMS);
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/62271473/multiple-signings-in-pdf-file-using-itext">
+     * Multiple Signings in pdf File using IText
+     * </a>
+     * <p>
+     * This code uses appropriate file streams for the both signing calls.
+     * In particular the output of the first signing is the input of the
+     * second one, and in no case a signing call uses the same file for
+     * input and output.
+     * </p>
+     * <p>
+     * Furthermore, the improved <code>sign</code> method used here allows
+     * the use of distinct signature field names for the calls and refrains
+     * from setting inappropriate certification levels.
+     * </p>
+     * @see #signLikePauloGonçalvesImproved(InputStream, OutputStream, InputStream, char[], String, String, String, String)
+     */
+    @Test
+    public void signLikePauloGonçalvesCorrected() throws Exception {
+        String basePath = RESULT_FOLDER.getPath() + '/';
+        try (   InputStream pdfResource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                InputStream img1Resource = getClass().getResourceAsStream("/mkl/testarea/itext5/content/2x2colored.png");
+                InputStream img2Resource = getClass().getResourceAsStream("/mkl/testarea/itext5/stamp/Signature.png")) {
+            Files.copy(pdfResource, Paths.get(basePath, "nonsigned.pdf"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(img1Resource, Paths.get(basePath, "signing1.png"), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(img2Resource, Paths.get(basePath, "signing2.png"), StandardCopyOption.REPLACE_EXISTING);
+        }
+        
+        signLikePauloGonçalvesImproved(new FileInputStream(basePath+"nonsigned.pdf"), new FileOutputStream(basePath+"signedOnce.pdf"), null, "mycert3".toCharArray(), "something", "something", basePath + "signing1.png", "sig");
+        signLikePauloGonçalvesImproved(new FileInputStream(basePath+"signedOnce.pdf"), new FileOutputStream(basePath+"signedTwice.pdf"), null, "mycert4".toCharArray(), "something", "something", basePath + "signing2.png", "sig2");
+    }
 }
