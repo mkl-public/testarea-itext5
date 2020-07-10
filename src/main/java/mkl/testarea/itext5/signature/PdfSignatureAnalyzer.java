@@ -75,10 +75,20 @@ public class PdfSignatureAnalyzer {
         System.out.println("\nHashes of the signed bytes:");
         for (Map.Entry<String, MessageDigest> entry : SignatureAnalyzer.digestByName.entrySet()) {
             String digestName = entry.getKey();
+            System.out.printf(" * %s:\n", digestName);
             MessageDigest digest = entry.getValue();
             digest.reset();
             byte[] digestValue = digest.digest(signedBytes);
-            System.out.printf(" * %s: %s\n", digestName, SignatureAnalyzer.toHex(digestValue));
+            System.out.printf("   - correct hash: %s\n", SignatureAnalyzer.toHex(digestValue));
+            digest.reset();
+            byte[] twice = digest.digest(digestValue);
+            System.out.printf("   - hash of hash: %s\n", SignatureAnalyzer.toHex(twice));
+            digest.reset();
+            byte[] ofStringLower = digest.digest(org.bouncycastle.util.encoders.Hex.encode(digestValue));
+            System.out.printf("   - hash of lower case hex of hash: %s\n", SignatureAnalyzer.toHex(ofStringLower));
+            digest.reset();
+            byte[] ofStringUpper = digest.digest(SignatureAnalyzer.toHex(digestValue).getBytes());
+            System.out.printf("   - hash of upper case hex of hash: %s\n", SignatureAnalyzer.toHex(ofStringUpper));
         }
         System.out.println();
 
