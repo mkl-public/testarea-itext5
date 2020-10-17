@@ -6,6 +6,7 @@ import java.io.OutputStream;
 import java.lang.reflect.Field;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.MessageDigest;
@@ -22,11 +23,14 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 
 import org.bouncycastle.asn1.ASN1Encodable;
+import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.bouncycastle.asn1.ASN1Set;
 import org.bouncycastle.asn1.ASN1TaggedObject;
 import org.bouncycastle.asn1.DEROutputStream;
+import org.bouncycastle.asn1.DERSet;
 import org.bouncycastle.asn1.cms.Attribute;
 import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.ContentInfo;
@@ -55,6 +59,7 @@ import org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtil;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
+import org.bouncycastle.operator.RuntimeOperatorException;
 import org.bouncycastle.operator.bc.BcDigestCalculatorProvider;
 import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.tsp.TSPException;
@@ -280,6 +285,17 @@ public class SignatureAnalyzer
             String signedAttributeHashHashString = toHex(signedAttributeHashHash);
             System.out.printf("Signed Attributes Hash Hash: %s\n", signedAttributeHashHashString);
 
+            byte[] derSignedAttributeBytes = new DERSet(ASN1Set.getInstance(signedAttributeBytes).toArray()).getEncoded(ASN1Encoding.DER);
+            if (!Arrays.equals(derSignedAttributeBytes, signedAttributeBytes)) {
+                System.out.println("!!! Signed attribute bytes not DER encoded");
+                md.reset();
+                byte[] derSignedAttributeHash = md.digest(derSignedAttributeBytes);
+                String derSignedAttributeHashString = toHex(derSignedAttributeHash);
+                System.out.printf("DER Signed Attributes Hash: %s\n", derSignedAttributeHashString);
+                Files.write(Paths.get("C:\\Temp\\1.ber"), signedAttributeBytes);
+                Files.write(Paths.get("C:\\Temp\\1.der"), derSignedAttributeBytes);
+            }
+
             if (cert != null) {
                 byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert);
                 if (digestBytes != null) {
@@ -302,6 +318,10 @@ public class SignatureAnalyzer
                     System.out.println("!!! Certificate not valid at claimed signing time: " + e1.getMessage());
                 } catch(CMSException e2) {
                     System.out.println("!!! Verification failure: " + e2.getMessage());
+                } catch(IllegalArgumentException e2) {
+                    System.out.println("!!! Verification failure (Illegal argument): " + e2.getMessage());
+                } catch(RuntimeOperatorException e2) {
+                    System.out.println("!!! Verification failure (Runtime Operator): " + e2.getMessage());
                 }
 
                 System.out.println("\nCertificate path from accompanying certificates");
@@ -470,6 +490,7 @@ public class SignatureAnalyzer
                 try {
                     DigestInfo digestInfo = DigestInfo.getInstance(bytes);
                     String digestString = toHex(digestInfo.getDigest());
+                    System.out.printf("Decrypted signature digest algorithm: %s\n", digestInfo.getAlgorithmId().getAlgorithm());
                     System.out.printf("Decrypted signature digest: %s\n", digestString);
                     return digestInfo.getDigest();
                 } catch (IllegalArgumentException bpe) {
