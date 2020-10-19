@@ -297,7 +297,7 @@ public class SignatureAnalyzer
             }
 
             if (cert != null) {
-                byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert);
+                byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert, derSignedAttributeBytes);
                 if (digestBytes != null) {
                     String digestString = toHex(digestBytes);
                     if (!digestString.equals(signedAttributeHashString)) {
@@ -367,7 +367,7 @@ public class SignatureAnalyzer
                                 byte[] digestValue = digest.digest(tbsCert.getEncoded());
                                 System.out.printf(" * %s: %s\n", digestName, SignatureAnalyzer.toHex(digestValue));
                             }
-                            analyzeSignatureBytes(c.getSignature(), cc);
+                            analyzeSignatureBytes(c.getSignature(), cc, null);
                         }
                     } catch (CertException e) {
                         System.out.printf("(inappropriate signature - %s)", e.getMessage());
@@ -478,7 +478,7 @@ public class SignatureAnalyzer
         } 
     }
 
-    public static byte[] analyzeSignatureBytes(byte[] signatureBytes, X509CertificateHolder cert) throws GeneralSecurityException, IOException {
+    public static byte[] analyzeSignatureBytes(byte[] signatureBytes, X509CertificateHolder cert, byte[] signedData) throws GeneralSecurityException, IOException {
         if (RSAUtil.isRsaOid(cert.getSubjectPublicKeyInfo().getAlgorithm().getAlgorithm())) {
             KeyFactory rsaKeyFactory = KeyFactory.getInstance("RSA");
             PublicKey publicKey = rsaKeyFactory.generatePublic(new X509EncodedKeySpec(cert.getSubjectPublicKeyInfo().getEncoded()));
@@ -487,15 +487,27 @@ public class SignatureAnalyzer
                 Cipher cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
                 cipher.init(Cipher.DECRYPT_MODE, publicKey);
                 byte[] bytes = cipher.doFinal(signatureBytes);
+                System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
                 try {
                     DigestInfo digestInfo = DigestInfo.getInstance(bytes);
                     String digestString = toHex(digestInfo.getDigest());
                     System.out.printf("Decrypted signature digest algorithm: %s\n", digestInfo.getAlgorithmId().getAlgorithm());
                     System.out.printf("Decrypted signature digest: %s\n", digestString);
+
+                    if (signedData != null) {
+                        MessageDigest digest = MessageDigest.getInstance(digestInfo.getAlgorithmId().getAlgorithm().toString());
+                        byte[] actualDigest = digest.digest(signedData);
+                        if (!Arrays.equals(actualDigest, digestInfo.getDigest())) {
+                            String actualDigestString = toHex(actualDigest);
+                            System.out.printf("Actual signed data digest: %s\n", actualDigestString);
+                        } else {
+                            System.out.println("Decrypted signature digest matches signed data digest.");
+                        }
+                    }
+
                     return digestInfo.getDigest();
                 } catch (IllegalArgumentException bpe) {
                     System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + bpe.getMessage());
-                    System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
                 }
             } catch (BadPaddingException bpe) {
                 System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());

@@ -21,7 +21,7 @@ public class SignatureBytesAnalyzer {
             X509CertificateHolder certificate = new X509CertificateHolder(certificateBytes);
             byte[] signatureBytes = Files.readAllBytes(Paths.get(args[1]));
 
-            byte[] digestBytes = SignatureAnalyzer.analyzeSignatureBytes(signatureBytes, certificate);
+            byte[] digestBytes = SignatureAnalyzer.analyzeSignatureBytes(signatureBytes, certificate, null);
 
             if (digestBytes != null) {
                 System.out.print("Decimal signature digest bytes:");
