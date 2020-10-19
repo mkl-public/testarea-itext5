@@ -24,7 +24,7 @@
 	</build>
 
 	<properties>
-		<junit.version>[4.0,4.13]</junit.version>
+		<junit.version>4.13.1</junit.version>
 		<itextpdf.version>${project.version}</itextpdf.version>
 	</properties>
 	<dependencyManagement>
