@@ -186,7 +186,7 @@ public class SignatureAnalyzer
                                     try
                                     {
                                         basicOCSPResp = (BasicOCSPResp) ocspResp.getResponseObject();
-                                        System.out.printf(" OCSP Response status %s - %s - %s\n", status, basicOCSPResp.getProducedAt(), ((ResponderID)basicOCSPResp.getResponderId().toASN1Object()).getName());
+                                        System.out.printf(" OCSP Response status %s - %s - %s\n", status, basicOCSPResp.getProducedAt(), ((ResponderID)basicOCSPResp.getResponderId().toASN1Primitive()).getName());
                                         for (X509CertificateHolder certificate : basicOCSPResp.getCerts())
                                         {
                                             System.out.printf("  Cert w/ Subject: %s\n          Issuer: %s\n           Serial: %s\n", certificate.getSubject(), certificate.getIssuer(), certificate.getSerialNumber());
