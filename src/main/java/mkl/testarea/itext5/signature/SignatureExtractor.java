@@ -4,6 +4,8 @@ package mkl.testarea.itext5.signature;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -87,6 +89,9 @@ public class SignatureExtractor
                     FileOutputStream output = new FileOutputStream(new File(file.getParent(), file.getName() + "." + sanitizedName + extension));
                     output.write(bytes);
                     output.close();
+                    if (!Arrays.equals(bytes, data.getDecryptedContents())) {
+                        Files.write(new File(file.getParent(), file.getName() + "." + sanitizedName + "-decrypted" + extension).toPath(), data.getDecryptedContents());
+                    }
                     /*
                     if (data.contentInfo != null)
                     {
@@ -136,6 +141,7 @@ public class SignatureExtractor
             if (contents != null)
             {
                 byte[] contentBytes = contents.getOriginalBytes();
+                byte[] decryptedBytes = contents.getBytes();
                 byte[] containerBytes = null;
                 /*
                 ContentInfo contentInfo = null;
@@ -180,7 +186,7 @@ public class SignatureExtractor
                     }
                 }
 
-                result.put(name, new SignatureData(/*contentInfo,*/ containerBytes, contentBytes, subFilter, signingTime));
+                result.put(name, new SignatureData(/*contentInfo,*/ containerBytes, contentBytes, decryptedBytes, subFilter, signingTime));
             }
         }
         return result;
@@ -220,6 +226,12 @@ public class SignatureExtractor
             return rawContents;
         }
 
+        /** The data originally contained in the signature /Contents field, decrypted. */
+        public byte[] getDecryptedContents()
+        {
+            return decryptedContents;
+        }
+
         /** The signature dictionary sub filter. */
         public PdfName getSubFilter()
         {
@@ -232,11 +244,12 @@ public class SignatureExtractor
             return signingTime;
         }
 
-        SignatureData(/*ContentInfo contentInfo,*/ byte[] signatureContainer, byte[] rawContents, PdfName subFilter, Date signingTime)
+        SignatureData(/*ContentInfo contentInfo,*/ byte[] signatureContainer, byte[] rawContents, byte[] decryptedContents, PdfName subFilter, Date signingTime)
         {
             //this.contentInfo = contentInfo;
             this.signatureContainer = signatureContainer;
             this.rawContents = rawContents;
+            this.decryptedContents = decryptedContents;
             this.subFilter = subFilter;
             this.signingTime = signingTime;
         }
@@ -244,6 +257,7 @@ public class SignatureExtractor
         //final ContentInfo contentInfo; // For internal use only
         final byte[] signatureContainer;
         final byte[] rawContents;
+        final byte[] decryptedContents;
         final PdfName subFilter;
         final Date signingTime;
     }
