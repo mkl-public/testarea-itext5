@@ -16,8 +16,22 @@ import java.security.Security;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaCertStore;
+import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.cms.CMSProcessableByteArray;
+import org.bouncycastle.cms.CMSSignedData;
+import org.bouncycastle.cms.CMSSignedDataGenerator;
+import org.bouncycastle.cms.CMSTypedData;
+import org.bouncycastle.cms.jcajce.JcaSignerInfoGeneratorBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.OperatorException;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
+import org.bouncycastle.operator.jcajce.JcaDigestCalculatorProviderBuilder;
+import org.bouncycastle.util.Store;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -27,10 +41,12 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.io.StreamUtil;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfAnnotation;
 import com.itextpdf.text.pdf.PdfDictionary;
 import com.itextpdf.text.pdf.PdfFormField;
+import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfSignatureAppearance;
 import com.itextpdf.text.pdf.PdfStamper;
@@ -838,5 +854,69 @@ public class CreateSignature
         
         signLikePauloGonçalvesImproved(new FileInputStream(basePath+"nonsigned.pdf"), new FileOutputStream(basePath+"signedOnce.pdf"), null, "mycert3".toCharArray(), "something", "something", basePath + "signing1.png", "sig");
         signLikePauloGonçalvesImproved(new FileInputStream(basePath+"signedOnce.pdf"), new FileOutputStream(basePath+"signedTwice.pdf"), null, "mycert4".toCharArray(), "something", "something", basePath + "signing2.png", "sig2");
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/64661102/attach-digital-signature-to-pdf-using-mssp">
+     * Attach digital signature to pdf using mssp
+     * </a>
+     * <p>
+     * This test with its associated {@link RemoteSignatureContainer}
+     * class show how in principle sign a PDF using a remote signature
+     * server returning a full CMS signature container, not a naked
+     * signature as long as that server responds quickly.
+     * </p>
+     */
+    @Test
+    public void signUsingExternalContainer() throws IOException, DocumentException, GeneralSecurityException {
+        try (   InputStream pdfResource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf");
+                FileOutputStream os = new FileOutputStream(new File(RESULT_FOLDER, "test-signed-external-container.pdf"));   ) {
+            PdfReader reader = new PdfReader(pdfResource);
+            PdfStamper stamper = PdfStamper.createSignature(reader, os, '\0');
+            PdfSignatureAppearance appearance = stamper.getSignatureAppearance();
+            appearance.setVisibleSignature(new Rectangle(36, 748, 144, 780), 1, "Signature");
+            ExternalSignatureContainer external = new RemoteSignatureContainer();
+            MakeSignature.signExternalContainer(appearance, external, 8192);
+        }
+    }
+
+    /** @see #signUsingExternalContainer() */
+    class RemoteSignatureContainer implements ExternalSignatureContainer {
+        /**
+         * Insert an implementation signing the data from the given
+         * Inputstream parameter using the remote server applicable.
+         * The code here simply generates a CMS using simple BC
+         * classes. 
+         */
+        @Override
+        public byte[] sign(InputStream data) throws GeneralSecurityException {
+            try {
+                CMSTypedData msg = new CMSProcessableByteArray(StreamUtil.inputStreamToArray(data));
+
+                Store<?> certs = new JcaCertStore(Arrays.asList(chain));
+
+                CMSSignedDataGenerator gen = new CMSSignedDataGenerator();
+                ContentSigner signer = new JcaContentSignerBuilder("SHA256withRSA").setProvider("BC").build(pk);
+
+                gen.addSignerInfoGenerator(
+                          new JcaSignerInfoGeneratorBuilder(
+                               new JcaDigestCalculatorProviderBuilder().setProvider("BC").build())
+                               .build(signer, new X509CertificateHolder(chain[0].getEncoded())));
+
+                gen.addCertificates(certs);
+
+                CMSSignedData sigData = gen.generate(msg, false);
+
+                return sigData.getEncoded();
+            } catch (IOException | OperatorException | CMSException e) {
+                throw new GeneralSecurityException(e);
+            }
+        }
+
+        @Override
+        public void modifySigningDictionary(PdfDictionary signDic) {
+            signDic.put(PdfName.FILTER, PdfName.ADOBE_PPKLITE);
+            signDic.put(PdfName.SUBFILTER, PdfName.ADBE_PKCS7_DETACHED);
+        }
     }
 }
