@@ -12,8 +12,13 @@ import java.util.Map;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
+import com.itextpdf.text.Font;
+import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.io.RandomAccessSourceFactory;
+import com.itextpdf.text.pdf.BaseFont;
+import com.itextpdf.text.pdf.PRStream;
 import com.itextpdf.text.pdf.PRTokeniser;
 import com.itextpdf.text.pdf.PdfArray;
 import com.itextpdf.text.pdf.PdfContentByte;
@@ -25,6 +30,7 @@ import com.itextpdf.text.pdf.PdfObject;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PdfString;
+import com.itextpdf.text.pdf.PdfWriter;
 import com.itextpdf.text.pdf.RandomAccessFileOrArray;
 import com.itextpdf.text.pdf.parser.ContentByteUtils;
 
@@ -108,5 +114,53 @@ public class EditPageContentSimple {
             value = value.replace(entry.getKey(), entry.getValue());
         }
         return new PdfString(PdfEncodings.convertToBytes(value, PdfObject.TEXT_PDFDOCENCODING));
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/65195276/java-package-com-itext-pdf-has-rendering-displaying-issue-while-replacing-conten">
+     * Java package com.itext.pdf has rendering/displaying issue while replacing content
+     * </a>
+     * <p>
+     * Using the code eventually provided by the OP the issue could be
+     * reproduced. Without the <code>baseFont.setSubset(false)</code>
+     * below the final result file does not look good. The cause is
+     * that iText generates subsets even in case of non-embedded fonts.
+     * </p>
+     */
+    @Test
+    public void testReplaceLikeMandarPande() throws IOException, DocumentException {
+        File templateFile = new File(RESULT_FOLDER, "template MandarPande.pdf");
+        File templateReplacedFile = new File(RESULT_FOLDER, "template MandarPande - replaced.pdf");
+
+        String TEMPORARY_DATE_PLACE_HOLDER = "----------------";
+
+        Document document = new Document();
+        try (FileOutputStream fos = new FileOutputStream(templateFile)) {
+            PdfWriter.getInstance(document, fos);
+            document.open();
+            BaseFont baseFont = BaseFont.createFont("c:\\Windows\\Fonts\\arial.ttf", BaseFont.WINANSI, false);
+            baseFont.setSubset(false);
+            Font font = new Font(baseFont, 10);
+            document.add(new Paragraph(TEMPORARY_DATE_PLACE_HOLDER, font));
+            document.close();
+        }
+
+        PdfReader reader = new PdfReader(templateFile.getAbsolutePath());
+        PdfDictionary dict = reader.getPageN(1);
+        PdfObject object = dict.getDirectObject(PdfName.CONTENTS);
+        if (object instanceof PRStream) {
+            PRStream stream = (PRStream) object;
+            byte[] data = PdfReader.getStreamBytes(stream);
+            String CHARACTER_ENCODING_SET = "ISO-8859-1";
+            String dataString = new String(data, CHARACTER_ENCODING_SET);
+            dataString = dataString.replaceAll(TEMPORARY_DATE_PLACE_HOLDER, "Nov 28, 2020");
+            stream.setData(dataString.getBytes(CHARACTER_ENCODING_SET));
+        }
+
+        try (FileOutputStream fos = new FileOutputStream(templateReplacedFile)) {
+            PdfStamper stamper = new PdfStamper(reader, fos);
+            stamper.close();
+        }
+        reader.close();
     }
 }
