@@ -129,4 +129,52 @@ public class OpenFile
             Assert.assertEquals("", "COB Srl", pdfReader.getInfo().get("Author"));
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/66885882/writing-a-streamed-cross-reference-in-pdf-file-is-detected-as-damaged">
+     * Writing a streamed cross-reference in PDF: file is detected as damaged?
+     * </a>
+     * <br/>
+     * <a href="https://easyupload.io/4z0gfc">
+     * corrupted-pdf.pdf
+     * </a>
+     * <p>
+     * In this version the first issue is the incorrect startxref offset.
+     * For pure cross reference stream PDFs iText cannot repair the cross
+     * references as it expects to find a trailer. But see
+     * {@link #testCorruptedPdfStartxref()}.
+     * </p>
+     */
+    @Test
+    public void testCorruptedPdf() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("corrupted-pdf.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+        }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/66885882/writing-a-streamed-cross-reference-in-pdf-file-is-detected-as-damaged">
+     * Writing a streamed cross-reference in PDF: file is detected as damaged?
+     * </a>
+     * <br/>
+     * <a href="https://easyupload.io/4z0gfc">
+     * corrupted-pdf.pdf
+     * </a>, with a fixed startxref offset as "corrupted-pdf-startxref.pdf"
+     * <p>
+     * After fixing the incorrect startxref offset, see  {@link #testCorruptedPdf()},
+     * the actual problem pops up: the predictor bytes are missing in the stream data.
+     * For pure cross reference stream PDFs iText cannot repair the cross
+     * references as it expects to find a trailer.
+     * </p>
+     */
+    @Test
+    public void testCorruptedPdfStartxref() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("corrupted-pdf-startxref.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+        }
+    }
 }
