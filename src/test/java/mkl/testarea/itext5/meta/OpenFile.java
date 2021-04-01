@@ -177,4 +177,30 @@ public class OpenFile
             PdfReader pdfReader = new PdfReader(resource);
         }
     }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/66885882/writing-a-streamed-cross-reference-in-pdf-file-is-detected-as-damaged">
+     * Writing a streamed cross-reference in PDF: file is detected as damaged?
+     * </a>
+     * <br/>
+     * <a href="https://easyupload.io/p5352r">
+     * corrupted-pdf-2.pdf
+     * </a>
+     * <p>
+     * Fixing the issues found in {@link #testCorruptedPdf()} and
+     * {@link #testCorruptedPdfStartxref()} resulted in this new
+     * test file which still fails to be read: The OP applied
+     * prediction only to the offset bytes, not the type byte.
+     * Thus, after resolving prediction the types of the entries
+     * were mostly wrong.
+     * </p>
+     */
+    @Test
+    public void testCorruptedPdf2() throws IOException
+    {
+        try ( InputStream resource = getClass().getResourceAsStream("corrupted-pdf-2.pdf") )
+        {
+            PdfReader pdfReader = new PdfReader(resource);
+        }
+    }
 }
