@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
+import java.security.Security;
 import java.util.Map;
 
 import org.bouncycastle.cms.CMSException;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.tsp.TSPException;
 
@@ -33,6 +35,7 @@ import mkl.testarea.signature.analyze.SignatureAnalyzer;
  */
 public class PdfSignatureAnalyzer {
     public static void main(String[] args) throws IOException, OperatorCreationException, CMSException, TSPException, GeneralSecurityException {
+        Security.addProvider(new BouncyCastleProvider());
         for (String arg: args)
         {
             System.out.printf("***\n*** %s\n***\n\n", arg);

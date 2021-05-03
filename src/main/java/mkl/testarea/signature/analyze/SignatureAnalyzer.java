@@ -12,6 +12,7 @@ import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.cert.CertificateException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Collection;
@@ -314,14 +315,16 @@ public class SignatureAnalyzer
                         System.out.println("Signature validates with certificate");
                     else
                         System.out.println("!!! Signature does not validate with certificate");
-                } catch(CMSVerifierCertificateNotValidException e1) {
-                    System.out.println("!!! Certificate not valid at claimed signing time: " + e1.getMessage());
+                } catch(CMSVerifierCertificateNotValidException e) {
+                    System.out.println("!!! Certificate not valid at claimed signing time: " + e.getMessage());
+                } catch(CertificateException e) {
+                    System.out.println("!!! Verification failure (Certificate): " + e.getMessage());
+                } catch(IllegalArgumentException e) {
+                    System.out.println("!!! Verification failure (Illegal argument): " + e.getMessage());
+                } catch(RuntimeOperatorException e) {
+                    System.out.println("!!! Verification failure (Runtime Operator): " + e.getMessage());
                 } catch(CMSException e2) {
                     System.out.println("!!! Verification failure: " + e2.getMessage());
-                } catch(IllegalArgumentException e2) {
-                    System.out.println("!!! Verification failure (Illegal argument): " + e2.getMessage());
-                } catch(RuntimeOperatorException e2) {
-                    System.out.println("!!! Verification failure (Runtime Operator): " + e2.getMessage());
                 }
 
                 System.out.println("\nCertificate path from accompanying certificates");
@@ -369,7 +372,7 @@ public class SignatureAnalyzer
                             }
                             analyzeSignatureBytes(c.getSignature(), cc, null);
                         }
-                    } catch (CertException e) {
+                    } catch (CertException | CertificateException e) {
                         System.out.printf("(inappropriate signature - %s)", e.getMessage());
                     }
                     if (c == cc) {
