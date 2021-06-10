@@ -27,10 +27,10 @@ import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Encoding;
 import org.bouncycastle.asn1.ASN1ObjectIdentifier;
 import org.bouncycastle.asn1.ASN1OctetString;
+import org.bouncycastle.asn1.ASN1OutputStream;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.bouncycastle.asn1.ASN1Set;
 import org.bouncycastle.asn1.ASN1TaggedObject;
-import org.bouncycastle.asn1.DEROutputStream;
 import org.bouncycastle.asn1.DERSet;
 import org.bouncycastle.asn1.cms.Attribute;
 import org.bouncycastle.asn1.cms.AttributeTable;
@@ -143,6 +143,7 @@ public class SignatureAnalyzer
 
             if (signerInfo.getSignedAttributes() == null) {
                 System.out.println("!!! No signed attributes");
+                analyzeSignatureBytes(signerInfo.getSignature(), cert, null);
                 continue;
             }
 
@@ -354,7 +355,7 @@ public class SignatureAnalyzer
                         System.out.print(isValid ? "(valid signature)" : "(invalid signature)");
                         TBSCertificate tbsCert = c.toASN1Structure().getTBSCertificate();
                         try (   ByteArrayOutputStream sOut = new ByteArrayOutputStream() ) {
-                            DEROutputStream dOut = new DEROutputStream(sOut);
+                            ASN1OutputStream dOut = ASN1OutputStream.create(sOut, ASN1Encoding.DER);
                             dOut.writeObject(tbsCert);
                             byte[] tbsDerBytes = sOut.toByteArray();
                             boolean isDer = Arrays.equals(tbsDerBytes, tbsCert.getEncoded());
