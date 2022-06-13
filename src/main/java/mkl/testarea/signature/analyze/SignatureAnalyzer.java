@@ -287,15 +287,30 @@ public class SignatureAnalyzer
             String signedAttributeHashHashString = toHex(signedAttributeHashHash);
             System.out.printf("Signed Attributes Hash Hash: %s\n", signedAttributeHashHashString);
 
+            // earlier BC versions returned getEncodedSignedAttributes in their original encoding
+            // for a DER encoding mismatch test, the explicit DER encoding needed to be tested
             byte[] derSignedAttributeBytes = new DERSet(ASN1Set.getInstance(signedAttributeBytes).toArray()).getEncoded(ASN1Encoding.DER);
             if (!Arrays.equals(derSignedAttributeBytes, signedAttributeBytes)) {
-                System.out.println("!!! Signed attribute bytes not DER encoded");
+                System.out.println("!!! Signed attribute bytes not DER encoded (1)");
                 md.reset();
                 byte[] derSignedAttributeHash = md.digest(derSignedAttributeBytes);
                 String derSignedAttributeHashString = toHex(derSignedAttributeHash);
                 System.out.printf("DER Signed Attributes Hash: %s\n", derSignedAttributeHashString);
                 Files.write(Paths.get("C:\\Temp\\1.ber"), signedAttributeBytes);
                 Files.write(Paths.get("C:\\Temp\\1.der"), derSignedAttributeBytes);
+            }
+
+            // newer BC versions return getEncodedSignedAttributes in DER encoding
+            // for a DER encoding mismatch test, the original encoding needs to be tested
+            byte[] origSignedAttributeBytes = signerInfo.toASN1Structure().getAuthenticatedAttributes().getEncoded();
+            if (!Arrays.equals(origSignedAttributeBytes, signedAttributeBytes)) {
+                System.out.println("!!! Signed attribute bytes not DER encoded (2)");
+                md.reset();
+                byte[] origSignedAttributeHash = md.digest(origSignedAttributeBytes);
+                String origSignedAttributeHashString = toHex(origSignedAttributeHash);
+                System.out.printf("Original Signed Attributes Hash: %s\n", origSignedAttributeHashString);
+                Files.write(Paths.get("C:\\Temp\\1.ber"), origSignedAttributeBytes);
+                Files.write(Paths.get("C:\\Temp\\1.der"), signedAttributeBytes);
             }
 
             if (cert != null) {
