@@ -35,16 +35,21 @@ import org.bouncycastle.asn1.DERSet;
 import org.bouncycastle.asn1.cms.Attribute;
 import org.bouncycastle.asn1.cms.AttributeTable;
 import org.bouncycastle.asn1.cms.ContentInfo;
+import org.bouncycastle.asn1.nist.NISTObjectIdentifiers;
 import org.bouncycastle.asn1.ocsp.OCSPResponse;
 import org.bouncycastle.asn1.ocsp.ResponderID;
 import org.bouncycastle.asn1.pkcs.PKCSObjectIdentifiers;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x509.AlgorithmIdentifier;
 import org.bouncycastle.asn1.x509.DigestInfo;
 import org.bouncycastle.asn1.x509.ExtendedKeyUsage;
 import org.bouncycastle.asn1.x509.Extension;
+import org.bouncycastle.asn1.x509.IssuerSerial;
 import org.bouncycastle.asn1.x509.KeyPurposeId;
 import org.bouncycastle.asn1.x509.TBSCertificate;
 import org.bouncycastle.cert.CertException;
+import org.bouncycastle.cert.X509AttributeCertificateHolder;
+import org.bouncycastle.cert.X509CRLHolder;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.ocsp.BasicOCSPResp;
 import org.bouncycastle.cert.ocsp.OCSPException;
@@ -57,6 +62,8 @@ import org.bouncycastle.cms.SignerId;
 import org.bouncycastle.cms.SignerInformation;
 import org.bouncycastle.cms.jcajce.JcaSimpleSignerInfoVerifierBuilder;
 import org.bouncycastle.jcajce.provider.asymmetric.rsa.RSAUtil;
+import org.bouncycastle.operator.AlgorithmNameFinder;
+import org.bouncycastle.operator.DefaultAlgorithmNameFinder;
 import org.bouncycastle.operator.DigestCalculator;
 import org.bouncycastle.operator.DigestCalculatorProvider;
 import org.bouncycastle.operator.OperatorCreationException;
@@ -80,6 +87,7 @@ import org.bouncycastle.util.Store;
 public class SignatureAnalyzer
 {
     private DigestCalculatorProvider digCalcProvider = new BcDigestCalculatorProvider();
+    private AlgorithmNameFinder algorithmNameFinder = new DefaultAlgorithmNameFinder();
 
     public static void main(String[] args) throws Exception {
         for (String arg : args) {
@@ -94,7 +102,7 @@ public class SignatureAnalyzer
     {
         signedData = new CMSSignedData(signatureData);
         
-        Store certificateStore = signedData.getCertificates();
+        Store<X509CertificateHolder> certificateStore = signedData.getCertificates();
         if (certificateStore == null || certificateStore.getMatches(selectAny).isEmpty())
             System.out.println("\nCertificates: none");
         else
@@ -106,7 +114,7 @@ public class SignatureAnalyzer
             }
         }
         
-        Store attributeCertificateStore = signedData.getAttributeCertificates();
+        Store<X509AttributeCertificateHolder> attributeCertificateStore = signedData.getAttributeCertificates();
         if (attributeCertificateStore == null || attributeCertificateStore.getMatches(selectAny).isEmpty())
             System.out.println("\nAttribute Certificates: none");
         else
@@ -114,7 +122,7 @@ public class SignatureAnalyzer
             System.out.println("\nAttribute Certificates: TODO!!!");
         }
         
-        Store crls = signedData.getCRLs();
+        Store<X509CRLHolder> crls = signedData.getCRLs();
         if (crls == null || crls.getMatches(selectAny).isEmpty())
             System.out.println("\nCRLs: none");
         else
@@ -126,8 +134,8 @@ public class SignatureAnalyzer
         {
             System.out.printf("\nSignerInfo: %s / %s\n", signerInfo.getSID().getIssuer(), signerInfo.getSID().getSerialNumber());
 
-            Store certificates = signedData.getCertificates();
-            Collection certs = certificates.getMatches(signerInfo.getSID());
+            Store<X509CertificateHolder> certificates = signedData.getCertificates();
+            Collection<X509CertificateHolder> certs = certificates.getMatches(signerInfo.getSID());
             
             System.out.print("Certificate: ");
             X509CertificateHolder cert = null;
@@ -137,7 +145,7 @@ public class SignatureAnalyzer
             }
             else
             {
-                cert = (X509CertificateHolder) certs.iterator().next();
+                cert = certs.iterator().next();
                 System.out.printf("%s\n", cert.getSubject());
             }
 
@@ -268,6 +276,37 @@ public class SignatureAnalyzer
                 else if (attributeEntry.getKey().equals(PKCSObjectIdentifiers.id_aa_signingCertificateV2))
                 {
                     System.out.println(" (Signing certificate v2)");
+                    Attribute attribute = (Attribute) attributeEntry.getValue();
+                    ASN1Encodable[] values = attribute.getAttributeValues();
+                    if (values == null || values.length == 0)
+                        System.out.println("!!! No signing certificate v2 value");
+                    else {
+                        if (values.length > 1)
+                            System.out.println("!!! Multiple signing certificate v2 values");
+                        for (ASN1Encodable value : values) {
+                            if (value instanceof ASN1Sequence) {
+                                ASN1Sequence certIds = (ASN1Sequence) ((ASN1Sequence) value).getObjectAt(0);
+                                for (ASN1Encodable certId : certIds) {
+                                    ASN1Sequence certIdSeq = (ASN1Sequence) certId;
+                                    int issuerSerialPosition = 1;
+                                    if (certIdSeq.getObjectAt(0) instanceof ASN1OctetString) {
+                                        System.out.println("    " + NISTObjectIdentifiers.id_sha256 + " (SHA256) by default");
+                                    } else {
+                                        issuerSerialPosition = 2;
+                                        AlgorithmIdentifier algorithm = AlgorithmIdentifier.getInstance(certIdSeq.getObjectAt(0).toASN1Primitive());
+                                        System.out.println("    " + algorithm.getAlgorithm() + " (" + algorithmNameFinder.getAlgorithmName(algorithm) + ")");
+                                        if (NISTObjectIdentifiers.id_sha256.equals(algorithm.getAlgorithm())) {
+                                            System.out.println("!!! Default algorithm explicitly serialized --> not DER");
+                                        }
+                                    }
+                                    if (certIdSeq.size() > issuerSerialPosition) {
+                                        System.out.println("    " + IssuerSerial.getInstance(certIdSeq.getObjectAt(issuerSerialPosition)));
+                                    }
+                                }
+                            } else
+                                System.out.println("!!! Invalid signing certificate v2 value type " + value.getClass());
+                        }
+                    }
                 }
                 else
                 {
@@ -349,10 +388,10 @@ public class SignatureAnalyzer
                 while (c != null) {
                     System.out.printf("- %s ", c.getSubject());
                     X500Name issuer = c.getIssuer();
-                    Collection cs = certificates.getMatches(new Selector() {
+                    Collection<X509CertificateHolder> cs = certificates.getMatches(new Selector<X509CertificateHolder>() {
                         @Override
-                        public boolean match(Object obj) {
-                            return  (obj instanceof X509CertificateHolder) && ((X509CertificateHolder)obj).getSubject().equals(issuer);
+                        public boolean match(X509CertificateHolder obj) {
+                            return  obj.getSubject().equals(issuer);
                         }
 
                         @Override
@@ -364,7 +403,7 @@ public class SignatureAnalyzer
                         System.out.printf("(no unique match - %d)", cs.size());
                         break;
                     }
-                    X509CertificateHolder cc = (X509CertificateHolder) cs.iterator().next();
+                    X509CertificateHolder cc = cs.iterator().next();
                     try {
                         boolean isValid = c.isSignatureValid(jcaContentVerifierProviderBuilder.build(cc));
                         System.out.print(isValid ? "(valid signature)" : "(invalid signature)");
@@ -452,7 +491,7 @@ public class SignatureAnalyzer
 
                             System.out.printf("Signer %s / %s\n", timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber());
                             
-                            Store tstCertificates = timeStampToken.getCertificates();
+                            Store<X509CertificateHolder> tstCertificates = timeStampToken.getCertificates();
                             Collection tstCerts = tstCertificates.getMatches(new SignerId(timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber()));
                             
                             System.out.print("Certificate: ");
