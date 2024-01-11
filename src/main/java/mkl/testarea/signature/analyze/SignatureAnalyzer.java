@@ -22,6 +22,7 @@ import java.util.Map;
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
 
 import org.bouncycastle.asn1.ASN1Encodable;
 import org.bouncycastle.asn1.ASN1Encoding;
@@ -564,8 +565,8 @@ public class SignatureAnalyzer
                     }
 
                     return digestInfo.getDigest();
-                } catch (IllegalArgumentException bpe) {
-                    System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + bpe.getMessage());
+                } catch (IllegalArgumentException iae) {
+                    System.out.println("!!! Decrypted, PKCS1 padded RSA signature is not well-formed: " + iae.getMessage());
                 }
             } catch (BadPaddingException bpe) {
                 System.out.println("!!! Decrypted RSA signature is not PKCS1 padded: " + bpe.getMessage());
@@ -582,6 +583,8 @@ public class SignatureAnalyzer
                 } catch(BadPaddingException bpe2) {
                     System.out.println("!!! Failure decrypted RSA signature: " + bpe2.getMessage());
                 }
+            } catch (IllegalBlockSizeException ibse) {
+                System.out.println("!!! Signature size does not match key size: " + ibse.getMessage());
             }
         }
         return null;
