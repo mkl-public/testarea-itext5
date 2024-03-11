@@ -5,20 +5,26 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.apache.commons.io.IOUtils;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
+import com.itextpdf.text.pdf.BaseFont;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PatternColor;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfGState;
+import com.itextpdf.text.pdf.PdfPatternPainter;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
 
@@ -129,5 +135,83 @@ public class AddWatermark {
             LOG.log(Level.SEVERE, "ERROR while retrieving primary content's file  ", e);
         }
         return bytearrayos;
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/78135326/unable-to-make-itext5-pdf-watermark-non-removable-in-vmware-workspace-one-boxer">
+     * Unable to make itext5 pdf watermark non removable in VMware Workspace ONE Boxer email
+     * </a>
+     * <p>
+     * In contrast to what the OP said, Acrobat can quite easily remove this watermark,
+     * simply using the "Edit a PDF" tool, one selects the page-covering object and
+     * deletes it. This has to be done some 35 times because the code fills the
+     * overcontent that many times with the pattern, but thereafter the mark is gone.
+     * </p>
+     */
+    @Test
+    public void testWatermark1LikeMahmoudSaleh() throws IOException, DocumentException {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try (InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf")) {
+            byte[] byteArray = IOUtils.toByteArray(resource);
+            String watermarkText = "confidential";
+//            String fontPath = resourcesPath + "myCustomFont.ttf";
+//            Font arabicFont = FontFactory.getFont(fontPath, BaseFont.IDENTITY_H, 16);
+//
+//            BaseFont baseFont = arabicFont.getBaseFont();
+            BaseFont baseFont = BaseFont.createFont(BaseFont.HELVETICA_OBLIQUE, BaseFont.WINANSI, false);
+
+            PdfReader reader = new PdfReader(byteArray);
+            PdfStamper stamper = new PdfStamper(reader, baos);
+
+            int numberOfPages = reader.getNumberOfPages();
+
+            float height = baseFont.getAscentPoint(watermarkText, 24) + baseFont.getDescentPoint(watermarkText, 24);
+
+            for (int i = 1; i <= numberOfPages; i++) {
+
+                Rectangle pageSize = reader.getPageSizeWithRotation(i);
+                PdfContentByte overContent = stamper.getOverContent(i);
+
+                PdfPatternPainter bodyPainter = stamper.getOverContent(i).createPattern(pageSize.getWidth(),
+                        pageSize.getHeight());
+                BaseColor baseColor = new BaseColor(10, 10, 10);
+                bodyPainter.setColorStroke(baseColor);
+                bodyPainter.setColorFill(baseColor);
+                bodyPainter.setLineWidth(0.85f);
+                bodyPainter.setLineDash(0.2f, 0.2f, 0.2f);
+
+                PdfGState state = new PdfGState();
+                state.setFillOpacity(0.3f);
+                overContent.saveState();
+                overContent.setGState(state);
+
+                for (float x = 70f; x < pageSize.getWidth(); x += height + 100) {
+                    for (float y = 90; y < pageSize.getHeight(); y += height + 100) {
+
+                        bodyPainter.beginText();
+                        bodyPainter.setTextRenderingMode(PdfPatternPainter.TEXT_RENDER_MODE_FILL);
+                        bodyPainter.setFontAndSize(baseFont, 13);
+                        bodyPainter.showTextAlignedKerned(Element.ALIGN_MIDDLE, watermarkText, x, y, 45f);
+                        bodyPainter.endText();
+
+                        overContent.setColorFill(new PatternColor(bodyPainter));
+                        overContent.rectangle(pageSize.getLeft(), pageSize.getBottom(), pageSize.getWidth(),
+                                pageSize.getHeight());
+                        overContent.fill();
+                    }
+                }
+
+                overContent.restoreState();
+            }
+
+            stamper.close();
+            reader.close();
+            byteArray = baos.toByteArray();
+            File outputFile = new File(RESULT_FOLDER, "Watermark1LikeMahmoudSaleh.pdf");
+            if (outputFile.exists()) {
+                outputFile.delete();
+            }
+            Files.write(outputFile.toPath(), byteArray);
+        }
     }
 }
