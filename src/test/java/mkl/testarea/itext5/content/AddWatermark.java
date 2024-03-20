@@ -24,6 +24,8 @@ import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PatternColor;
 import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfGState;
+import com.itextpdf.text.pdf.PdfImportedPage;
+import com.itextpdf.text.pdf.PdfName;
 import com.itextpdf.text.pdf.PdfPatternPainter;
 import com.itextpdf.text.pdf.PdfReader;
 import com.itextpdf.text.pdf.PdfStamper;
@@ -213,5 +215,90 @@ public class AddWatermark {
             }
             Files.write(outputFile.toPath(), byteArray);
         }
+    }
+
+    /**
+     * <a href="https://stackoverflow.com/questions/78135326/unable-to-make-itext5-pdf-watermark-non-removable-in-vmware-workspace-one-boxer">
+     * Unable to make itext5 pdf watermark non removable in VMware Workspace ONE Boxer email
+     * </a>
+     * <p>
+     * As proposed in a comment, one can try to put all the former page content into
+     * the pattern, so that Acrobat removes the content together with the watermark.
+     * It turned out, though, that Acrobat suddenly allows editing the pattern content
+     * if there is no other content in the page than the pattern. Thus, here we also
+     * add a short pseudo content.
+     * </p>
+     * <p>
+     * Beware, chances are that Acrobat will eventually also allow to edit this kind
+     * of watermarking. Maybe it even now is possible, merely not as obvious as before.
+     * </p>
+     */
+    @Test
+    public void testWatermarkAllInPattern() throws IOException, DocumentException {
+        byte[] byteArray;
+        try (InputStream resource = getClass().getResourceAsStream("/mkl/testarea/itext5/extract/test.pdf")) {
+            byteArray = IOUtils.toByteArray(resource);
+        }
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+
+        PdfReader reader = new PdfReader(byteArray);
+        PdfStamper stamper = new PdfStamper(reader, baos);
+
+        BaseFont baseFont = BaseFont.createFont(BaseFont.HELVETICA_OBLIQUE, BaseFont.WINANSI, false);
+        String watermarkText = "confidential";
+
+        int numberOfPages = reader.getNumberOfPages();
+        for (int i = 1; i <= numberOfPages; i++) {
+            Rectangle pageSize = reader.getPageSizeWithRotation(i);
+
+            // get handle for existing page content
+            PdfImportedPage pageContent = stamper.getImportedPage(reader, i);
+            // store that content as form XObject
+            stamper.getWriter().addToBody(pageContent.getFormXObject(stamper.getWriter().getCompressionLevel()), pageContent.getIndirectReference());
+            pageContent.setCopied();
+            // reset page content
+            reader.getPageN(i).put(PdfName.CONTENTS, null);
+
+            // create pattern with former page content
+            PdfPatternPainter bodyPainter = stamper.getOverContent(i).createPattern(pageSize.getWidth(),
+                    pageSize.getHeight());
+            bodyPainter.addTemplate(pageContent, 0, 0);
+
+            // add watermark to pattern
+            PdfGState state = new PdfGState();
+            state.setFillOpacity(0.3f);
+            bodyPainter.saveState();
+            bodyPainter.setGState(state);
+            for (float x = 70f; x < pageSize.getWidth(); x += 100) {
+                for (float y = 90; y < pageSize.getHeight(); y += 100) {
+                    bodyPainter.beginText();
+                    bodyPainter.setTextRenderingMode(PdfPatternPainter.TEXT_RENDER_MODE_FILL);
+                    bodyPainter.setFontAndSize(baseFont, 13);
+                    bodyPainter.showTextAlignedKerned(Element.ALIGN_MIDDLE, watermarkText, x, y, 45f);
+                    bodyPainter.endText();
+                }
+            }
+            bodyPainter.restoreState();
+
+            // create new page content
+            PdfContentByte canvas = stamper.getUnderContent(i);
+            // add pseudo-content
+            canvas.beginText();
+            canvas.setFontAndSize(baseFont, 13);
+            canvas.showTextAlignedKerned(Element.ALIGN_MIDDLE, "        ", 0, 0, 45f);
+            canvas.endText();
+            // fill with pattern holding former page content
+            canvas.setColorFill(new PatternColor(bodyPainter));
+            canvas.rectangle(pageSize.getLeft(), pageSize.getBottom(), pageSize.getWidth(),
+                    pageSize.getHeight());
+            canvas.fill();
+        }
+
+        stamper.close();
+        reader.close();
+        byteArray = baos.toByteArray();
+        File outputFile = new File(RESULT_FOLDER, "WatermarkAllInPattern.pdf");
+        Files.write(outputFile.toPath(), byteArray);
     }
 }
