@@ -2,14 +2,18 @@ package mkl.testarea.itext5.signature;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PublicKey;
+import java.security.Security;
 import java.security.cert.CRLException;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
@@ -51,6 +55,7 @@ import org.bouncycastle.operator.jcajce.JcaContentVerifierProviderBuilder;
 import org.bouncycastle.util.Store;
 import org.bouncycastle.x509.util.StreamParsingException;
 
+import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Utilities;
 import com.itextpdf.text.error_messages.MessageLocalization;
 import com.itextpdf.text.pdf.AcroFields;
@@ -66,7 +71,9 @@ import com.itextpdf.text.pdf.PdfStream;
 import com.itextpdf.text.pdf.PdfString;
 import com.itextpdf.text.pdf.PdfWriter;
 import com.itextpdf.text.pdf.security.CrlClient;
+import com.itextpdf.text.pdf.security.CrlClientOnline;
 import com.itextpdf.text.pdf.security.OcspClient;
+import com.itextpdf.text.pdf.security.OcspClientBouncyCastle;
 import com.itextpdf.text.pdf.security.PdfPKCS7;
 
 /**
@@ -81,6 +88,28 @@ import com.itextpdf.text.pdf.security.PdfPKCS7;
  * @author mkl
  */
 public class AdobeLtvEnabling {
+    public static void main(String[] args) throws IOException, DocumentException, OperatorException, GeneralSecurityException, StreamParsingException, OCSPException, CMSException {
+        Security.addProvider(new BouncyCastleProvider());
+        for (String arg: args) {
+            System.out.printf("\n%s\n", arg);
+            final File file = new File(arg);
+            if (file.exists()) {
+                try (OutputStream result = new FileOutputStream(new File(arg + "-ltv.pdf"))) {
+                    PdfReader pdfReader = new PdfReader(file.getAbsolutePath());
+                    PdfStamper pdfStamper = new PdfStamper(pdfReader, result, (char)0, true);
+
+                    AdobeLtvEnabling adobeLtvEnabling = new AdobeLtvEnabling(pdfStamper);
+                    OcspClient ocsp = new OcspClientBouncyCastle();
+                    CrlClient crl = new CrlClientOnline();
+                    adobeLtvEnabling.enable(ocsp, crl);
+
+                    pdfStamper.close();
+                }
+            } else
+                System.err.printf("!!! File does not exist: %s\n", file);
+        }
+    }
+
     /**
      * Use this constructor with a {@link PdfStamper} in append mode. Otherwise
      * the existing signatures will be damaged.
