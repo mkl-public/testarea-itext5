@@ -77,7 +77,6 @@ import org.bouncycastle.tsp.TimeStampTokenInfo;
 import org.bouncycastle.util.Selector;
 import org.bouncycastle.util.Store;
 
-
 /**
  * This class is meant to eventually become a tool for analyzing signatures.
  * More and more tests shall be added to indicate the issues of the upcoming
@@ -114,7 +113,7 @@ public class SignatureAnalyzer
                 System.out.printf("- Subject: %s\n  Issuer: %s\n  Serial: %s\n", certificate.getSubject(), certificate.getIssuer(), certificate.getSerialNumber());
             }
         }
-        
+
         Store<X509AttributeCertificateHolder> attributeCertificateStore = signedData.getAttributeCertificates();
         if (attributeCertificateStore == null || attributeCertificateStore.getMatches(selectAny).isEmpty())
             System.out.println("\nAttribute Certificates: none");
@@ -122,7 +121,7 @@ public class SignatureAnalyzer
         {
             System.out.println("\nAttribute Certificates: TODO!!!");
         }
-        
+
         Store<X509CRLHolder> crls = signedData.getCRLs();
         if (crls == null || crls.getMatches(selectAny).isEmpty())
             System.out.println("\nCRLs: none");
@@ -137,7 +136,7 @@ public class SignatureAnalyzer
 
             Store<X509CertificateHolder> certificates = signedData.getCertificates();
             Collection<X509CertificateHolder> certs = certificates.getMatches(signerInfo.getSID());
-            
+
             System.out.print("Certificate: ");
             X509CertificateHolder cert = null;
             if (certs.size() != 1)
@@ -161,12 +160,12 @@ public class SignatureAnalyzer
             for (Map.Entry<ASN1ObjectIdentifier, ?> attributeEntry : attributes.entrySet())
             {
                 System.out.printf("Signed attribute %s", attributeEntry.getKey());
-                
+
                 if (attributeEntry.getKey().equals(ADBE_REVOCATION_INFO_ARCHIVAL))
                 {
                     System.out.println(" (Adobe Revocation Information Archival)");
                     Attribute attribute = (Attribute) attributeEntry.getValue();
-                    
+
                     for (ASN1Encodable encodable : attribute.getAttrValues().toArray())
                     {
                         ASN1Sequence asn1Sequence = (ASN1Sequence) encodable;
@@ -268,7 +267,6 @@ public class SignatureAnalyzer
                                 } catch (NoSuchFieldException | SecurityException | IllegalArgumentException | IllegalAccessException e) {
                                     System.out.println("## Introspection failure: " + e.getMessage());
                                 }
-
                             } else
                                 System.out.println("!!! Invalid Message Digest value type " + value.getClass());
                         }
@@ -317,127 +315,131 @@ public class SignatureAnalyzer
                 System.out.println();
             }
 
-            byte[] signedAttributeBytes = signerInfo.getEncodedSignedAttributes();
-            MessageDigest md = MessageDigest.getInstance(signerInfo.getDigestAlgOID());
-            byte[] signedAttributeHash = md.digest(signedAttributeBytes);
-            String signedAttributeHashString = toHex(signedAttributeHash);
-            System.out.printf("Signed Attributes Hash: %s\n", signedAttributeHashString);
-            md.reset();
-            byte[] signedAttributeHashHash = md.digest(signedAttributeHash);
-            String signedAttributeHashHashString = toHex(signedAttributeHashHash);
-            System.out.printf("Signed Attributes Hash Hash: %s\n", signedAttributeHashHashString);
-
-            // earlier BC versions returned getEncodedSignedAttributes in their original encoding
-            // for a DER encoding mismatch test, the explicit DER encoding needed to be tested
-            byte[] derSignedAttributeBytes = new DERSet(ASN1Set.getInstance(signedAttributeBytes).toArray()).getEncoded(ASN1Encoding.DER);
-            if (!Arrays.equals(derSignedAttributeBytes, signedAttributeBytes)) {
-                System.out.println("!!! Signed attribute bytes not DER encoded (1)");
+            try {
+                byte[] signedAttributeBytes = signerInfo.getEncodedSignedAttributes();
+                MessageDigest md = MessageDigest.getInstance(signerInfo.getDigestAlgOID());
+                byte[] signedAttributeHash = md.digest(signedAttributeBytes);
+                String signedAttributeHashString = toHex(signedAttributeHash);
+                System.out.printf("Signed Attributes Hash: %s\n", signedAttributeHashString);
                 md.reset();
-                byte[] derSignedAttributeHash = md.digest(derSignedAttributeBytes);
-                String derSignedAttributeHashString = toHex(derSignedAttributeHash);
-                System.out.printf("DER Signed Attributes Hash: %s\n", derSignedAttributeHashString);
-                Files.write(Paths.get("C:\\Temp\\1.ber"), signedAttributeBytes);
-                Files.write(Paths.get("C:\\Temp\\1.der"), derSignedAttributeBytes);
-            }
+                byte[] signedAttributeHashHash = md.digest(signedAttributeHash);
+                String signedAttributeHashHashString = toHex(signedAttributeHashHash);
+                System.out.printf("Signed Attributes Hash Hash: %s\n", signedAttributeHashHashString);
 
-            // newer BC versions return getEncodedSignedAttributes in DER encoding
-            // for a DER encoding mismatch test, the original encoding needs to be tested
-            byte[] origSignedAttributeBytes = signerInfo.toASN1Structure().getAuthenticatedAttributes().getEncoded();
-            if (!Arrays.equals(origSignedAttributeBytes, signedAttributeBytes)) {
-                System.out.println("!!! Signed attribute bytes not DER encoded (2)");
-                md.reset();
-                byte[] origSignedAttributeHash = md.digest(origSignedAttributeBytes);
-                String origSignedAttributeHashString = toHex(origSignedAttributeHash);
-                System.out.printf("Original Signed Attributes Hash: %s\n", origSignedAttributeHashString);
-                Files.write(Paths.get("C:\\Temp\\1.ber"), origSignedAttributeBytes);
-                Files.write(Paths.get("C:\\Temp\\1.der"), signedAttributeBytes);
-            }
-
-            if (cert != null) {
-                byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert, derSignedAttributeBytes);
-                if (digestBytes != null) {
-                    String digestString = toHex(digestBytes);
-                    if (!digestString.equals(signedAttributeHashString)) {
-                        System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
-                        if (digestString.equals(signedAttributeHashHashString))
-                            System.out.println("!!! but it contains the hash of the signed attributes hash");
-                    }
+                // earlier BC versions returned getEncodedSignedAttributes in their original encoding
+                // for a DER encoding mismatch test, the explicit DER encoding needed to be tested
+                byte[] derSignedAttributeBytes = new DERSet(ASN1Set.getInstance(signedAttributeBytes).toArray()).getEncoded(ASN1Encoding.DER);
+                if (!Arrays.equals(derSignedAttributeBytes, signedAttributeBytes)) {
+                    System.out.println("!!! Signed attribute bytes not DER encoded (1)");
+                    md.reset();
+                    byte[] derSignedAttributeHash = md.digest(derSignedAttributeBytes);
+                    String derSignedAttributeHashString = toHex(derSignedAttributeHash);
+                    System.out.printf("DER Signed Attributes Hash: %s\n", derSignedAttributeHashString);
+                    Files.write(Paths.get("C:\\Temp\\1.ber"), signedAttributeBytes);
+                    Files.write(Paths.get("C:\\Temp\\1.der"), derSignedAttributeBytes);
                 }
 
-                System.out.println();
-
-                try {
-                    if(signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().build(cert)))
-                        System.out.println("Signature validates with certificate");
-                    else
-                        System.out.println("!!! Signature does not validate with certificate");
-                } catch(CMSVerifierCertificateNotValidException e) {
-                    System.out.println("!!! Certificate not valid at claimed signing time: " + e.getMessage());
-                } catch(CertificateException e) {
-                    System.out.println("!!! Verification failure (Certificate): " + e.getMessage());
-                } catch(IllegalArgumentException e) {
-                    System.out.println("!!! Verification failure (Illegal argument): " + e.getMessage());
-                } catch(RuntimeOperatorException e) {
-                    System.out.println("!!! Verification failure (Runtime Operator): " + e.getMessage());
-                } catch(CMSException e2) {
-                    System.out.println("!!! Verification failure: " + e2.getMessage());
+                // newer BC versions return getEncodedSignedAttributes in DER encoding
+                // for a DER encoding mismatch test, the original encoding needs to be tested
+                byte[] origSignedAttributeBytes = signerInfo.toASN1Structure().getAuthenticatedAttributes().getEncoded();
+                if (!Arrays.equals(origSignedAttributeBytes, signedAttributeBytes)) {
+                    System.out.println("!!! Signed attribute bytes not DER encoded (2)");
+                    md.reset();
+                    byte[] origSignedAttributeHash = md.digest(origSignedAttributeBytes);
+                    String origSignedAttributeHashString = toHex(origSignedAttributeHash);
+                    System.out.printf("Original Signed Attributes Hash: %s\n", origSignedAttributeHashString);
+                    Files.write(Paths.get("C:\\Temp\\1.ber"), origSignedAttributeBytes);
+                    Files.write(Paths.get("C:\\Temp\\1.der"), signedAttributeBytes);
                 }
 
-                System.out.println("\nCertificate path from accompanying certificates");
-                X509CertificateHolder c = cert;
-                JcaContentVerifierProviderBuilder jcaContentVerifierProviderBuilder = new JcaContentVerifierProviderBuilder();
-                while (c != null) {
-                    System.out.printf("- %s ", c.getSubject());
-                    X500Name issuer = c.getIssuer();
-                    Collection<X509CertificateHolder> cs = certificates.getMatches(new Selector<X509CertificateHolder>() {
-                        @Override
-                        public boolean match(X509CertificateHolder obj) {
-                            return  obj.getSubject().equals(issuer);
+                if (cert != null) {
+                    byte[] digestBytes = analyzeSignatureBytes(signerInfo.getSignature(), cert, derSignedAttributeBytes);
+                    if (digestBytes != null) {
+                        String digestString = toHex(digestBytes);
+                        if (!digestString.equals(signedAttributeHashString)) {
+                            System.out.println("!!! Decrypted RSA signature with PKCS1 1.5 padding does not contain signed attributes hash");
+                            if (digestString.equals(signedAttributeHashHashString))
+                                System.out.println("!!! but it contains the hash of the signed attributes hash");
                         }
+                    }
 
-                        @Override
-                        public Object clone() {
-                            return this;
-                        }
-                    });
-                    if (cs.size() != 1) {
-                        System.out.printf("(no unique match - %d)", cs.size());
-                        break;
-                    }
-                    X509CertificateHolder cc = cs.iterator().next();
-                    try {
-                        boolean isValid = c.isSignatureValid(jcaContentVerifierProviderBuilder.build(cc));
-                        System.out.print(isValid ? "(valid signature)" : "(invalid signature)");
-                        TBSCertificate tbsCert = c.toASN1Structure().getTBSCertificate();
-                        try (   ByteArrayOutputStream sOut = new ByteArrayOutputStream() ) {
-                            ASN1OutputStream dOut = ASN1OutputStream.create(sOut, ASN1Encoding.DER);
-                            dOut.writeObject(tbsCert);
-                            byte[] tbsDerBytes = sOut.toByteArray();
-                            boolean isDer = Arrays.equals(tbsDerBytes, tbsCert.getEncoded());
-                            if (!isDer)
-                                System.out.print(" (TBSCertificate not DER encoded)");
-                        }
-                        if (!isValid) {
-                            System.out.println("\nHashes of the TBSCertificate:");
-                            for (Map.Entry<String, MessageDigest> entry : SignatureAnalyzer.digestByName.entrySet()) {
-                                String digestName = entry.getKey();
-                                MessageDigest digest = entry.getValue();
-                                digest.reset();
-                                byte[] digestValue = digest.digest(tbsCert.getEncoded());
-                                System.out.printf(" * %s: %s\n", digestName, SignatureAnalyzer.toHex(digestValue));
-                            }
-                            analyzeSignatureBytes(c.getSignature(), cc, null);
-                        }
-                    } catch (CertException | CertificateException e) {
-                        System.out.printf("(inappropriate signature - %s)", e.getMessage());
-                    }
-                    if (c == cc) {
-                        System.out.print(" (self-signed)");
-                        c = null;
-                    } else
-                        c = cc;
                     System.out.println();
+
+                    try {
+                        if(signerInfo.verify(new JcaSimpleSignerInfoVerifierBuilder().build(cert)))
+                            System.out.println("Signature validates with certificate");
+                        else
+                            System.out.println("!!! Signature does not validate with certificate");
+                    } catch(CMSVerifierCertificateNotValidException e) {
+                        System.out.println("!!! Certificate not valid at claimed signing time: " + e.getMessage());
+                    } catch(CertificateException e) {
+                        System.out.println("!!! Verification failure (Certificate): " + e.getMessage());
+                    } catch(IllegalArgumentException e) {
+                        System.out.println("!!! Verification failure (Illegal argument): " + e.getMessage());
+                    } catch(RuntimeOperatorException e) {
+                        System.out.println("!!! Verification failure (Runtime Operator): " + e.getMessage());
+                    } catch(CMSException e2) {
+                        System.out.println("!!! Verification failure: " + e2.getMessage());
+                    }
+
+                    System.out.println("\nCertificate path from accompanying certificates");
+                    X509CertificateHolder c = cert;
+                    JcaContentVerifierProviderBuilder jcaContentVerifierProviderBuilder = new JcaContentVerifierProviderBuilder();
+                    while (c != null) {
+                        System.out.printf("- %s ", c.getSubject());
+                        X500Name issuer = c.getIssuer();
+                        Collection<X509CertificateHolder> cs = certificates.getMatches(new Selector<X509CertificateHolder>() {
+                            @Override
+                            public boolean match(X509CertificateHolder obj) {
+                                return  obj.getSubject().equals(issuer);
+                            }
+
+                            @Override
+                            public Object clone() {
+                                return this;
+                            }
+                        });
+                        if (cs.size() != 1) {
+                            System.out.printf("(no unique match - %d)", cs.size());
+                            break;
+                        }
+                        X509CertificateHolder cc = cs.iterator().next();
+                        try {
+                            boolean isValid = c.isSignatureValid(jcaContentVerifierProviderBuilder.build(cc));
+                            System.out.print(isValid ? "(valid signature)" : "(invalid signature)");
+                            TBSCertificate tbsCert = c.toASN1Structure().getTBSCertificate();
+                            try (   ByteArrayOutputStream sOut = new ByteArrayOutputStream() ) {
+                                ASN1OutputStream dOut = ASN1OutputStream.create(sOut, ASN1Encoding.DER);
+                                dOut.writeObject(tbsCert);
+                                byte[] tbsDerBytes = sOut.toByteArray();
+                                boolean isDer = Arrays.equals(tbsDerBytes, tbsCert.getEncoded());
+                                if (!isDer)
+                                    System.out.print(" (TBSCertificate not DER encoded)");
+                            }
+                            if (!isValid) {
+                                System.out.println("\nHashes of the TBSCertificate:");
+                                for (Map.Entry<String, MessageDigest> entry : SignatureAnalyzer.digestByName.entrySet()) {
+                                    String digestName = entry.getKey();
+                                    MessageDigest digest = entry.getValue();
+                                    digest.reset();
+                                    byte[] digestValue = digest.digest(tbsCert.getEncoded());
+                                    System.out.printf(" * %s: %s\n", digestName, SignatureAnalyzer.toHex(digestValue));
+                                }
+                                analyzeSignatureBytes(c.getSignature(), cc, null);
+                            }
+                        } catch (CertException | CertificateException e) {
+                            System.out.printf("(inappropriate signature - %s)", e.getMessage());
+                        }
+                        if (c == cc) {
+                            System.out.print(" (self-signed)");
+                            c = null;
+                        } else
+                            c = cc;
+                        System.out.println();
+                    }
                 }
+            } catch (NoSuchAlgorithmException e) {
+                System.out.printf("Unknown algorithm, cannot validate: %s\n", e.getMessage());
             }
 
             System.out.println();
@@ -477,56 +479,60 @@ public class SignatureAnalyzer
                             TimeStampTokenInfo tstInfo = timeStampToken.getTimeStampInfo();
 
                             System.out.printf("Authority/SN %s / %s\n", tstInfo.getTsa(), tstInfo.getSerialNumber());
-                            
-                            DigestCalculator digCalc = digCalcProvider .get(tstInfo.getHashAlgorithm());
 
-                            OutputStream dOut = digCalc.getOutputStream();
+                            try {
+                                DigestCalculator digCalc = digCalcProvider .get(tstInfo.getHashAlgorithm());
 
-                            dOut.write(signerInfo.getSignature());
-                            dOut.close();
+                                OutputStream dOut = digCalc.getOutputStream();
 
-                            byte[] expectedDigest = digCalc.getDigest();
-                            boolean matches =  Arrays.equals(expectedDigest, tstInfo.getMessageImprintDigest());
-                            
-                            System.out.printf("Digest match? %s\n", matches);
+                                dOut.write(signerInfo.getSignature());
+                                dOut.close();
 
-                            System.out.printf("Signer %s / %s\n", timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber());
-                            
-                            Store<X509CertificateHolder> tstCertificates = timeStampToken.getCertificates();
-                            Collection tstCerts = tstCertificates.getMatches(new SignerId(timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber()));
-                            
-                            System.out.print("Certificate: ");
-                            
-                            if (tstCerts.size() != 1)
-                            {
-                                System.out.printf("Could not identify, %s candidates\n", tstCerts.size());
-                            }
-                            else
-                            {
-                                X509CertificateHolder tstCert = (X509CertificateHolder) tstCerts.iterator().next();
-                                System.out.printf("%s\n", tstCert.getSubject());
-                                
-                                int version = tstCert.toASN1Structure().getVersionNumber();
-                                System.out.printf("Version: %s\n", version);
-                                if (version != 3)
-                                    System.out.println("Error: Certificate must be version 3 to have an ExtendedKeyUsage extension.");
-                                
-                                Extension ext = tstCert.getExtension(Extension.extendedKeyUsage);
-                                if (ext == null)
-                                    System.out.println("Error: Certificate must have an ExtendedKeyUsage extension.");
+                                byte[] expectedDigest = digCalc.getDigest();
+                                boolean matches =  Arrays.equals(expectedDigest, tstInfo.getMessageImprintDigest());
+
+                                System.out.printf("Digest match? %s\n", matches);
+
+                                System.out.printf("Signer %s / %s\n", timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber());
+
+                                Store<X509CertificateHolder> tstCertificates = timeStampToken.getCertificates();
+                                Collection tstCerts = tstCertificates.getMatches(new SignerId(timeStampToken.getSID().getIssuer(), timeStampToken.getSID().getSerialNumber()));
+
+                                System.out.print("Certificate: ");
+
+                                if (tstCerts.size() != 1)
+                                {
+                                    System.out.printf("Could not identify, %s candidates\n", tstCerts.size());
+                                }
                                 else
                                 {
-                                    if (!ext.isCritical())
+                                    X509CertificateHolder tstCert = (X509CertificateHolder) tstCerts.iterator().next();
+                                    System.out.printf("%s\n", tstCert.getSubject());
+
+                                    int version = tstCert.toASN1Structure().getVersionNumber();
+                                    System.out.printf("Version: %s\n", version);
+                                    if (version != 3)
+                                        System.out.println("Error: Certificate must be version 3 to have an ExtendedKeyUsage extension.");
+
+                                    Extension ext = tstCert.getExtension(Extension.extendedKeyUsage);
+                                    if (ext == null)
+                                        System.out.println("Error: Certificate must have an ExtendedKeyUsage extension.");
+                                    else
                                     {
-                                        System.out.println("Error: Certificate must have an ExtendedKeyUsage extension marked as critical.");
+                                        if (!ext.isCritical())
+                                        {
+                                            System.out.println("Error: Certificate must have an ExtendedKeyUsage extension marked as critical.");
+                                        }
+
+                                        ExtendedKeyUsage    extKey = ExtendedKeyUsage.getInstance(ext.getParsedValue());
+                                        if (!extKey.hasKeyPurposeId(KeyPurposeId.id_kp_timeStamping) || extKey.size() != 1)
+                                        {
+                                            System.out.println("Error: ExtendedKeyUsage not solely time stamping.");
+                                        }
                                     }
-                                    
-                                    ExtendedKeyUsage    extKey = ExtendedKeyUsage.getInstance(ext.getParsedValue());
-                                    if (!extKey.hasKeyPurposeId(KeyPurposeId.id_kp_timeStamping) || extKey.size() != 1)
-                                    {
-                                        System.out.println("Error: ExtendedKeyUsage not solely time stamping.");
-                                    }                             
                                 }
+                            } catch (OperatorCreationException e) {
+                                System.out.printf("Unknown algorithm, cannot validate: %s\n", e.getMessage());
                             }
                         }
                     }
@@ -640,7 +646,7 @@ public class SignatureAnalyzer
     static final ASN1ObjectIdentifier acrobat = adobe.branch("1");
     static final ASN1ObjectIdentifier security = acrobat.branch("1");
     static final ASN1ObjectIdentifier ADBE_REVOCATION_INFO_ARCHIVAL = security.branch("8");
-    
+
     final CMSSignedData signedData;
     final static ASN1ObjectIdentifier SIGNATURE_TIME_STAMP_OID = new ASN1ObjectIdentifier("1.2.840.113549.1.9.16.2.14");
 }
