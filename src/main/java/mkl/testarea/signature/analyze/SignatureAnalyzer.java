@@ -553,10 +553,16 @@ public class SignatureAnalyzer
                 cipher.init(Cipher.DECRYPT_MODE, publicKey);
                 byte[] bytes = cipher.doFinal(signatureBytes);
                 System.out.printf("Decrypted signature bytes: %s\n", toHex(bytes));
+                Files.write(Paths.get("C:\\Temp\\2.ber"), bytes);
                 try {
                     DigestInfo digestInfo = DigestInfo.getInstance(bytes);
                     String digestString = toHex(digestInfo.getDigest());
-                    System.out.printf("Decrypted signature digest algorithm: %s\n", digestInfo.getAlgorithmId().getAlgorithm());
+                    AlgorithmIdentifier algorithmIdentifier = digestInfo.getAlgorithmId();
+                    System.out.printf("Decrypted signature digest algorithm: %s\n", algorithmIdentifier.getAlgorithm());
+                    if (algorithmIdentifier.getParameters() == null)
+                        System.out.println("!!! without parameters. (compare RFC 8017 B1)");
+                    else
+                        System.out.printf("with parameters: %s\n", algorithmIdentifier.getParameters());
                     System.out.printf("Decrypted signature digest: %s\n", digestString);
 
                     if (signedData != null) {
